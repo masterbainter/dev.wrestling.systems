@@ -129,6 +129,7 @@
             onAuthStateChanged,
             signOut
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app-check.js";
 
         // Your web app's Firebase configuration
@@ -145,6 +146,7 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // Initialize App Check with reCAPTCHA v3
         const appCheck = initializeAppCheck(app, {
@@ -185,12 +187,25 @@
         };
 
         // Auth State Listener
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 // User is signed in.
                 loginContainer.classList.add('hidden');
                 userStatusDiv.classList.remove('hidden');
-                userDisplayName.textContent = user.displayName || user.email;
+                
+                const userRef = doc(db, "users", user.uid);
+                try {
+                    const docSnap = await getDoc(userRef);
+                    if (docSnap.exists() && docSnap.data().firstName) {
+                        userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
+                    } else {
+                        userDisplayName.textContent = user.displayName || user.email; // Fallback
+                    }
+                } catch(e) {
+                    console.error("Error fetching user data:", e);
+                    userDisplayName.textContent = user.displayName || user.email; // Fallback on error
+                }
+
             } else {
                 // User is signed out.
                 loginContainer.classList.remove('hidden');

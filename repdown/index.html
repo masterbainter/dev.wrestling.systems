@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rep Down</title>
+    <title>Rep Down - Wrestling.Systems</title>
+
+    <!-- Favicon Links -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://assets.wrestling.systems/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://assets.wrestling.systems/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://assets.wrestling.systems/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://assets.wrestling.systems/favicon.ico">
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             touch-action: manipulation;
-            background-color: #000; /* Force black background */
         }
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button {
@@ -20,27 +26,19 @@
         input[type=number] {
             -moz-appearance: textfield;
         }
-        .text-glow {
-            text-shadow: 0 0 8px currentColor;
-        }
-        .container-glow {
-            box-shadow: 0 0 20px rgba(255, 191, 0, 0.4), inset 0 0 15px rgba(255, 191, 0, 0.2);
-            border-color: rgba(255, 191, 0, 0.7);
-        }
-        .btn-glow {
-            transition: all 0.2s ease-in-out;
-            box-shadow: 0 0 5px rgba(255, 191, 0, 0.7), 0 0 10px rgba(255, 191, 0, 0.5);
-        }
-        .btn-glow:hover:not(:disabled) {
-            box-shadow: 0 0 10px rgba(255, 191, 0, 0.9), 0 0 20px rgba(255, 191, 0, 0.7);
-        }
-        .exercise-item[data-completed="true"] .exercise-name {
-            text-decoration: line-through;
-            color: #6b7280; /* gray-500 */
-        }
+        /* Custom Gold Color */
+        .bg-gold-500 { background-color: #D4AF37; }
+        .hover\:bg-gold-600:hover { background-color: #C09B2D; }
+        .text-gold-300 { color: #E6C75E; }
+        .border-gold-500 { border-color: #D4AF37; }
+        .focus\:ring-gold-500:focus { --tw-ring-color: #D4AF37; }
+        .focus\:border-gold-500:focus { border-color: #D4AF37; }
+        .text-gold-400 { color: #D4AF37; } /* A slightly darker gold for main buttons */
+        .hover\:text-gold-300:hover { color: #E6C75E; }
+
         #loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #ca8a04;
+            border: 5px solid #4b5563; /* gray-600 */
+            border-top: 5px solid #D4AF37; /* gold-500 */
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -52,125 +50,139 @@
         }
     </style>
 </head>
-<body class="bg-black text-gray-200 flex items-center justify-center min-h-screen p-4">
+<body class="bg-black text-gray-200 antialiased">
+    
+    <!-- User Status Display -->
+    <div id="user-status" class="absolute top-4 right-4 text-right hidden group z-10">
+        <p class="text-gray-400 text-sm">Signed in as</p>
+        <p id="user-display-name" class="font-semibold text-white"></p>
+        <button id="signout-btn" class="absolute top-11 right-0 w-max bg-gray-800 text-red-400 font-semibold px-3 py-1.5 rounded-md shadow-lg border border-gray-700 hidden group-hover:block transition-all mt-1">Sign Out</button>
+    </div>
 
-    <div id="app-container" class="relative w-full max-w-md mx-auto p-4 sm:p-6 text-center bg-gray-900/80 backdrop-blur-sm rounded-2xl border-2 container-glow">
-        
-        <div id="user-status" class="absolute top-4 right-4 text-sm hidden group">
-            <span id="user-display-name" class="text-gray-400"></span>
-            <button id="signout-btn" class="absolute top-6 right-0 w-max bg-gray-800 text-red-400 font-semibold px-3 py-1.5 rounded-md shadow-lg border border-gray-700 hidden group-hover:block transition-all">Sign Out</button>
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-black to-gray-900 p-4">
+
+        <div class="w-full max-w-lg mx-auto text-center pt-12">
+            <!-- Logo/Header -->
+            <a href="https://dev.wrestling.systems"><img src="https://assets.wrestling.systems/logo-gemini2.png" alt="Wrestling.Systems Logo" class="w-48 mx-auto mb-6"></a>
         </div>
 
-        <div id="loader-container" class="flex flex-col items-center justify-center min-h-[400px]">
-            <div id="loader"></div>
-            <p class="mt-4 text-amber-400">Connecting...</p>
-        </div>
-
-        <!-- Setup Screen -->
-        <div id="setup-screen" class="hidden">
-            <h1 class="text-4xl sm:text-5xl font-extrabold text-amber-400 mb-2 text-glow">Rep Down</h1>
-            <p id="retry-info" class="text-cyan-400 text-lg my-2 hidden"></p>
-            <p id="current-date" class="text-gray-400 text-lg mb-2"></p>
-            <p id="challenge-day-info" class="text-amber-400 font-bold text-2xl mb-4 text-glow"></p>
+        <div id="app-container" class="w-full max-w-lg mx-auto bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700 mt-8">
             
-            <div class="bg-black/50 p-6 rounded-xl">
-                 <p id="recommended-reps" class="text-gray-300 text-lg mb-6"></p>
-                <div class="mb-6">
-                    <label class="block text-lg font-semibold mb-3 text-gray-300">Select Your Exercises</label>
-                    <div id="exercise-selection" class="space-y-3 text-left w-fit mx-auto">
-                        <div class="flex items-center">
-                            <input id="pushups-check" type="checkbox" checked value="Pushups" class="w-5 h-5 text-amber-400 bg-gray-700 border-gray-600 rounded focus:ring-amber-500 focus:ring-2">
-                            <label for="pushups-check" class="ml-3 text-lg font-medium text-gray-300">Pushups</label>
+            <div id="loader-container" class="flex flex-col items-center justify-center min-h-[400px]">
+                <div id="loader"></div>
+                <p class="mt-4 text-gold-300">Connecting...</p>
+            </div>
+
+            <!-- Setup Screen -->
+            <div id="setup-screen" class="hidden">
+                <h1 class="text-3xl sm:text-4xl font-bold text-white text-center mb-2">Rep Down Challenge</h1>
+                <p id="retry-info" class="text-cyan-400 text-lg my-3 text-center hidden"></p>
+                <p id="current-date" class="text-gray-400 text-base text-center mb-1"></p>
+                <p id="challenge-day-info" class="text-gold-300 font-bold text-xl text-center mb-4"></p>
+                
+                <div class="bg-black/30 p-6 rounded-xl">
+                    <p id="recommended-reps" class="text-gray-300 text-base text-center mb-5"></p>
+                    <div class="mb-5">
+                        <label class="block text-sm font-medium text-gray-300 mb-3 text-center">Select Your Exercises</label>
+                        <div id="exercise-selection" class="space-y-2 text-left w-fit mx-auto">
+                            <div class="flex items-center">
+                                <input id="pushups-check" type="checkbox" checked value="Pushups" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2">
+                                <label for="pushups-check" class="ml-2 text-base font-medium text-gray-300">Pushups</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="squats-check" type="checkbox" checked value="Squats" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2">
+                                <label for="squats-check" class="ml-2 text-base font-medium text-gray-300">Squats</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="vups-check" type="checkbox" checked value="V-ups" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2">
+                                <label for="vups-check" class="ml-2 text-base font-medium text-gray-300">V-ups</label>
+                            </div>
                         </div>
-                        <div class="flex items-center">
-                            <input id="squats-check" type="checkbox" checked value="Squats" class="w-5 h-5 text-amber-400 bg-gray-700 border-gray-600 rounded focus:ring-amber-500 focus:ring-2">
-                            <label for="squats-check" class="ml-3 text-lg font-medium text-gray-300">Squats</label>
+                        <div id="add-exercise-container" class="mt-3 text-center">
+                            <button id="add-exercise-btn" class="text-cyan-400 hover:text-cyan-300 text-sm font-semibold">+ Add Exercise</button>
+                            <div id="new-exercise-form" class="hidden mt-2 flex gap-2 w-full max-w-xs mx-auto">
+                                <input type="text" id="new-exercise-input" placeholder="Exercise Name" class="flex-grow bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                <button id="save-exercise-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-3 rounded-md text-sm">Save</button>
+                            </div>
+                            <p id="add-exercise-limit-msg" class="text-gray-500 text-xs mt-2 hidden">You can add up to 2 custom exercises.</p>
                         </div>
-                        <div class="flex items-center">
-                            <input id="vups-check" type="checkbox" checked value="V-ups" class="w-5 h-5 text-amber-400 bg-gray-700 border-gray-600 rounded focus:ring-amber-500 focus:ring-2">
-                            <label for="vups-check" class="ml-3 text-lg font-medium text-gray-300">V-ups</label>
-                        </div>
+                        <p id="exercise-error" class="text-red-400 text-sm mt-2 text-center hidden">Please select at least one exercise.</p>
                     </div>
-                    <div id="add-exercise-container" class="mt-4">
-                        <button id="add-exercise-btn" class="text-cyan-400 hover:text-cyan-300 font-semibold">+ Add Exercise</button>
-                        <div id="new-exercise-form" class="hidden mt-2 flex gap-2">
-                            <input type="text" id="new-exercise-input" placeholder="Exercise Name" class="w-full bg-gray-800 text-white text-md text-center font-bold p-2 rounded-lg border-2 border-gray-600 focus:border-amber-400 focus:ring-amber-400 focus:ring-1 outline-none">
-                            <button id="save-exercise-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Save</button>
-                        </div>
-                        <p id="add-exercise-limit-msg" class="text-gray-500 text-sm mt-2 hidden">You can add up to 2 custom exercises.</p>
+                    <div class="mb-4">
+                        <label for="reps-input" class="block text-sm font-medium text-gray-300 mb-2 text-center">Starting Reps</label>
+                        <input type="number" id="reps-input" value="10" min="1" max="100" class="w-full text-center bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white text-2xl font-bold focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                        <p id="reps-error" class="text-red-400 text-sm mt-2 text-center hidden">Please enter a number between 1 and 100.</p>
                     </div>
-                    <p id="exercise-error" class="text-red-500 text-sm mt-2 hidden">Please select at least one exercise.</p>
+                    <button id="start-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm font-medium text-white bg-gold-500 hover:bg-gold-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
+                        Start Workout
+                    </button>
                 </div>
-                <div class="mb-4">
-                    <label for="reps-input" class="block text-lg font-semibold mb-3 text-gray-300">Starting Reps</label>
-                    <input type="number" id="reps-input" value="10" min="1" max="100" class="w-full bg-gray-800 text-white text-3xl text-center font-bold p-4 rounded-xl border-2 border-gray-600 focus:border-amber-400 focus:ring-amber-400 focus:ring-1 outline-none">
-                    <p id="reps-error" class="text-red-500 text-sm mt-2 hidden">Please enter a number between 1 and 100.</p>
+            </div>
+
+            <!-- Workout Screen -->
+            <div id="workout-screen" class="hidden">
+                <div id="total-timer-container" class="mb-4 text-center">
+                    <p class="text-gray-400 text-sm font-medium">Time Remaining for this Round</p>
+                    <p id="total-timer" class="text-4xl font-bold text-gray-200">10:00</p>
                 </div>
-                <button id="start-btn" class="w-full bg-transparent hover:bg-amber-400 text-amber-400 hover:text-black font-bold text-xl py-4 px-6 rounded-xl border-2 border-amber-400 btn-glow">
-                    Start Workout
+                <div id="rep-display" class="mb-4 text-center">
+                    <p class="text-gray-400 text-lg font-medium">Current Round</p>
+                    <p id="current-reps" class="text-7xl font-extrabold text-gold-300">10</p>
+                    <p class="text-gray-400 text-lg font-medium">Reps per Exercise</p>
+                </div>
+
+                <div id="exercise-list" class="my-6 bg-black/30 p-4 rounded-xl">
+                    <h3 class="text-lg font-bold text-white text-center mb-4">Complete Your Reps:</h3>
+                    <div id="dynamic-exercise-list" class="space-y-3">
+                        <!-- Dynamic content will be injected here -->
+                    </div>
+                </div>
+
+                <button id="done-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm font-medium text-white bg-gold-500 hover:bg-gold-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
+                    Start Next Round
+                </button>
+                <button id="end-btn" class="w-full mt-3 bg-transparent hover:bg-red-600 text-red-500 hover:text-white font-medium text-sm py-2 px-4 rounded-md border border-red-500/50 hover:border-red-500 transition-colors">
+                    End Workout
                 </button>
             </div>
+
+            <!-- Completion Screen -->
+            <div id="complete-screen" class="hidden">
+                <h1 id="complete-title" class="text-3xl font-extrabold text-gold-300 mb-3 text-center">Well Done!</h1>
+                <p class="text-gray-400 text-base mb-5 text-center">You crushed the challenge. Time to recover.</p>
+                <p id="total-reps-info" class="text-gold-300 text-xl font-bold mb-1 text-center"></p>
+                <p id="total-missed-reps-info" class="text-red-400 text-base font-bold mb-1 text-center hidden"></p>
+                <p id="beast-mode-info" class="text-cyan-400 text-xl font-bold mb-3 text-center hidden"></p>
+                <div id="round-summary-container" class="my-5 text-left max-h-52 overflow-y-auto bg-black/30 p-4 rounded-xl">
+                    <h3 class="text-base font-bold text-white mb-2 text-center">Round Summary</h3>
+                    <div id="round-summary-list"></div>
+                </div>
+                <button id="restart-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm font-medium text-white bg-gold-500 hover:bg-gold-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
+                    New Workout
+                </button>
+                <div class="mt-3 grid grid-cols-2 gap-3">
+                    <button id="download-csv-btn" class="w-full bg-transparent hover:bg-green-600 text-green-500 hover:text-white font-medium text-sm py-2 px-4 rounded-md border border-green-500/50 hover:border-green-500 transition-colors hidden">
+                        Download CSV
+                    </button>
+                    <button id="retry-btn" class="w-full bg-transparent hover:bg-cyan-500 text-cyan-400 hover:text-black font-medium text-sm py-2 px-4 rounded-md border border-cyan-400/50 hover:border-cyan-400 transition-colors hidden">
+                        Retry Workout
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- Workout Screen -->
-        <div id="workout-screen" class="hidden">
-            <div id="total-timer-container" class="mb-4">
-                <p class="text-gray-400 text-lg font-semibold">Time Remaining for this Round</p>
-                <p id="total-timer" class="text-5xl font-bold text-gray-200">10:00</p>
-            </div>
-            <div id="rep-display" class="mb-4">
-                <p class="text-gray-400 text-2xl font-semibold">Current Round</p>
-                <p id="current-reps" class="text-8xl font-extrabold text-amber-400 text-glow">10</p>
-                <p class="text-gray-400 text-2xl font-semibold">Reps per Exercise</p>
-            </div>
-
-            <div id="exercise-list" class="my-6 bg-black/50 p-4 sm:p-6 rounded-xl">
-                 <h3 class="text-2xl font-bold text-amber-400 mb-4 text-glow">Complete Your Reps:</h3>
-                 <div id="dynamic-exercise-list" class="space-y-4">
-                    <!-- Dynamic content will be injected here -->
-                 </div>
-            </div>
-
-            <button id="done-btn" class="w-full bg-transparent hover:bg-amber-400 text-amber-400 hover:text-black font-bold text-xl py-5 px-6 rounded-xl border-2 border-amber-400 btn-glow">
-                Start Next Round
-            </button>
-            <button id="end-btn" class="w-full mt-4 bg-transparent hover:bg-red-600 text-red-500 hover:text-white font-semibold text-md py-2 px-6 rounded-xl border-2 border-red-500">
-                End Workout
-            </button>
-        </div>
-
-        <!-- Completion Screen -->
-        <div id="complete-screen" class="hidden">
-            <h1 id="complete-title" class="text-5xl font-extrabold text-amber-400 mb-4 text-glow">Well Done!</h1>
-            <p class="text-gray-400 text-xl mb-6">You crushed the challenge. Time to recover.</p>
-            <p id="total-reps-info" class="text-amber-400 text-2xl font-bold mb-2 text-glow"></p>
-            <p id="total-missed-reps-info" class="text-red-500 text-lg font-bold mb-2 text-glow hidden"></p>
-            <p id="beast-mode-info" class="text-cyan-400 text-2xl font-bold mb-4 text-glow hidden"></p>
-             <svg id="complete-icon" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-amber-400 mx-auto mb-8" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <div id="round-summary-container" class="my-6 text-left max-h-60 overflow-y-auto bg-black/50 p-4 rounded-xl">
-                <h3 class="text-xl font-bold text-amber-400 mb-3 text-center text-glow">Round Summary</h3>
-                <div id="round-summary-list"></div>
-            </div>
-            <button id="restart-btn" class="w-full bg-transparent hover:bg-amber-400 text-amber-400 hover:text-black font-bold text-xl py-4 px-6 rounded-xl border-2 border-amber-400 btn-glow">
-                New Workout
-            </button>
-            <button id="download-csv-btn" class="w-full mt-4 bg-transparent hover:bg-green-600 text-green-500 hover:text-white font-bold text-xl py-4 px-6 rounded-xl border-2 border-green-500 btn-glow hidden">
-                Download Summary (CSV)
-            </button>
-            <button id="retry-btn" class="w-full mt-4 bg-transparent hover:bg-cyan-500 text-cyan-400 hover:text-black font-bold text-xl py-4 px-6 rounded-xl border-2 border-cyan-400 btn-glow hidden">
-                Retry Workout
-            </button>
-        </div>
-        <p id="user-id-display" class="text-xs text-gray-600 mt-4 text-center break-all"></p>
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 mt-12 pb-8 space-y-2">
+             <p class="text-sm">&copy; 2025 Wrestling.Systems. All Rights Reserved.</p>
+        </footer>
     </div>
 
     <script type="module">
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, setLogLevel, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // DOM Elements
         const setupScreen = document.getElementById('setup-screen');
@@ -208,7 +220,6 @@
         const recommendedRepsDisplay = document.getElementById('recommended-reps');
         const retryInfoDisplay = document.getElementById('retry-info');
         const roundSummaryList = document.getElementById('round-summary-list');
-        const userIdDisplay = document.getElementById('user-id-display');
         
         // App State
         let startingRps = 10;
@@ -249,38 +260,46 @@
                 
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
-                        console.log("User is signed in:", user.uid);
                         userId = user.uid;
-                        userIdDisplay.textContent = `User ID: ${userId}`;
-                        userDisplayName.textContent = user.email;
+                        
+                        const userRef = doc(db, "users", userId);
+                        try {
+                            const docSnap = await getDoc(userRef);
+                            if (docSnap.exists() && docSnap.data().firstName) {
+                                userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
+                            } else {
+                                userDisplayName.textContent = user.displayName || user.email;
+                            }
+                        } catch (error) {
+                            console.error("Error fetching user data:", error);
+                            userDisplayName.textContent = user.displayName || user.email;
+                        }
+                        
                         userStatusDiv.classList.remove('hidden');
-
                         await fetchLastWorkout();
                         loaderContainer.classList.add('hidden');
                         setupScreen.classList.remove('hidden');
+
                     } else {
-                        console.log("No user signed in.");
                         userStatusDiv.classList.add('hidden');
                         loaderContainer.innerHTML = `
-                             <div class="p-4">
-                                <p class="text-xl text-amber-400 text-center">
+                             <div class="p-4 text-center">
+                                <p class="text-lg text-gold-300">
                                     Please sign in to your<br>
-                                    <span class="font-bold">wrestling.systems</span><br>
+                                    <span class="font-bold">wrestling.systems</span>
                                     account to use this app.
                                 </p>
-                                <div class="mt-6 flex flex-col sm:flex-row gap-4">
-                                    <a href="https://dev.wrestling.systems/login" target="_blank" class="w-full bg-transparent hover:bg-amber-400 text-amber-400 hover:text-black font-bold text-lg py-3 px-6 rounded-xl border-2 border-amber-400 btn-glow">
+                                <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                                    <a href="https://dev.wrestling.systems/login" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm font-medium text-black bg-gold-500 hover:bg-gold-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
                                         Sign In
                                     </a>
-                                    <a href="https://dev.wrestling.systems/register" target="_blank" class="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold text-lg py-3 px-6 rounded-xl border-2 border-amber-400 btn-glow">
+                                    <a href="https://dev.wrestling.systems/register" class="w-full flex justify-center py-2.5 px-4 border border-gray-600 rounded-md shadow-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
                                         Register
                                     </a>
                                 </div>
                             </div>`;
                         loaderContainer.classList.remove('hidden');
                         setupScreen.classList.add('hidden');
-                        workoutScreen.classList.add('hidden');
-                        completeScreen.classList.add('hidden');
                     }
                 });
             } catch (error) {
@@ -438,21 +457,29 @@
                 const isOnTarget = exerciseReps === currentReps;
                 const repsBehind = exerciseReps - currentReps;
                 const item = document.createElement('div');
-                item.className = 'exercise-item text-left bg-gray-800 p-3 rounded-lg';
+                item.className = 'exercise-item text-left bg-gray-900/50 p-3 rounded-md';
                 item.dataset.name = exerciseName;
                 item.dataset.completed = 'false';
-                let statusHTML = isOnTarget ? `<span class="text-green-400 font-semibold">On Target</span>` : `<span class="text-yellow-400 font-semibold">You're on ${exerciseReps}, catch up!</span>`;
-                let buttonClasses = '';
-                if (isOnTarget) buttonClasses = 'bg-amber-400 hover:bg-amber-300 text-black';
-                else if (repsBehind > 0 && repsBehind <= 3) buttonClasses = 'bg-amber-600 hover:bg-amber-500 text-black';
+                
+                let statusHTML;
+                if (isOnTarget) {
+                    statusHTML = `<span class="text-green-400 font-semibold">On Target</span>`;
+                } else {
+                    statusHTML = `<span class="text-yellow-400 font-semibold">You're on ${exerciseReps}, catch up!</span>`;
+                }
+
+                let buttonClasses;
+                if (isOnTarget) buttonClasses = 'bg-gold-500 hover:bg-gold-600 text-black';
+                else if (repsBehind > 0 && repsBehind <= 3) buttonClasses = 'bg-yellow-600 hover:bg-yellow-500 text-black';
                 else if (repsBehind > 3) buttonClasses = 'bg-red-600 hover:bg-red-500 text-white';
+
                 item.innerHTML = `
                     <div class="flex justify-between items-center">
                         <div>
-                            <span class="exercise-name text-lg font-medium text-gray-300 block">${exerciseName}</span>
-                            <span class="exercise-status text-sm">${statusHTML}</span>
+                            <span class="exercise-name text-base font-medium text-gray-300 block">${exerciseName}</span>
+                            <span class="exercise-status text-xs">${statusHTML}</span>
                         </div>
-                        <button class="complete-exercise-btn ${buttonClasses} font-bold py-2 px-4 rounded-md transition-colors">Done</button>
+                        <button class="complete-exercise-btn ${buttonClasses} font-bold py-1.5 px-3 rounded-md transition-colors text-sm">Done</button>
                     </div>`;
                 dynamicExerciseList.appendChild(item);
                 item.querySelector('.complete-exercise-btn').onclick = () => markExerciseComplete(item);
@@ -465,10 +492,12 @@
             const isOnTarget = exerciseReps === currentReps;
             const repsBehind = exerciseReps - currentReps;
             item.querySelector('.exercise-status').innerHTML = isOnTarget ? `<span class="text-green-400 font-semibold">On Target</span>` : `<span class="text-yellow-400 font-semibold">You're on ${exerciseReps}, catch up!</span>`;
+            
             const button = item.querySelector('.complete-exercise-btn');
-            button.classList.remove('bg-amber-400', 'hover:bg-amber-300', 'text-black', 'bg-amber-600', 'hover:bg-amber-500', 'bg-red-600', 'hover:bg-red-500', 'text-white');
-            if (isOnTarget) button.classList.add('bg-amber-400', 'hover:bg-amber-300', 'text-black');
-            else if (repsBehind > 0 && repsBehind <= 3) button.classList.add('bg-amber-600', 'hover:bg-amber-500', 'text-black');
+            button.classList.remove('bg-gold-500', 'hover:bg-gold-600', 'bg-yellow-600', 'hover:bg-yellow-500', 'bg-red-600', 'hover:bg-red-500', 'text-white', 'text-black');
+            
+            if (isOnTarget) button.classList.add('bg-gold-500', 'hover:bg-gold-600', 'text-black');
+            else if (repsBehind > 0 && repsBehind <= 3) button.classList.add('bg-yellow-600', 'hover:bg-yellow-500', 'text-black');
             else if (repsBehind > 3) button.classList.add('bg-red-600', 'hover:bg-red-500', 'text-white');
         }
 
@@ -484,7 +513,7 @@
                 const button = item.querySelector('.complete-exercise-btn');
                 button.disabled = true;
                 button.textContent = '✔';
-                button.classList.remove('bg-amber-400', 'hover:bg-amber-300', 'text-black', 'bg-amber-600', 'hover:bg-amber-500', 'bg-red-600', 'hover:bg-red-500', 'text-white');
+                button.classList.remove('bg-gold-500', 'hover:bg-gold-600', 'bg-yellow-600', 'hover:bg-yellow-500', 'bg-red-600', 'hover:bg-red-500', 'text-white', 'text-black');
                 button.classList.add('bg-green-600', 'text-white');
             }
         }
@@ -553,14 +582,14 @@
             roundTimes.forEach(round => {
                 const statusColor = round.status === 'Completed' ? 'text-green-400' : (round.status === 'Started Early' ? 'text-yellow-400' : 'text-red-500');
                 const summaryItem = document.createElement('div');
-                summaryItem.className = 'text-gray-300 py-2 border-b border-gray-700/50';
+                summaryItem.className = 'text-gray-300 py-1.5 border-b border-gray-700/50 text-sm';
                 let missedRepsHTML = '';
                 const missedEntries = Object.entries(round.missedReps || {});
                 if (missedEntries.length > 0) {
                     const missedContent = missedEntries.map(([exercise, reps]) => `<span>- Missed ${reps} ${exercise}</span>`).join('<br>');
-                    missedRepsHTML = `<div class="text-sm text-red-400 pl-4 pt-1">${missedContent}</div>`;
+                    missedRepsHTML = `<div class="text-xs text-red-400 pl-4 pt-1">${missedContent}</div>`;
                 }
-                summaryItem.innerHTML = `<div class="flex justify-between items-center"><span>Round <span class="font-bold text-amber-400">${round.roundNumber}</span></span><span class="font-semibold">${formatRoundTime(round.timeTaken)}</span><span class="font-bold ${statusColor}">${round.status}</span></div>${missedRepsHTML}`;
+                summaryItem.innerHTML = `<div class="flex justify-between items-center"><span>Round <span class="font-bold text-gold-300">${round.roundNumber}</span></span><span class="font-semibold">${formatRoundTime(round.timeTaken)}</span><span class="font-bold ${statusColor}">${round.status}</span></div>${missedRepsHTML}`;
                 roundSummaryList.appendChild(summaryItem);
             });
         }
@@ -609,16 +638,12 @@
             restartBtn.classList.remove('hidden');
             retryBtn.classList.remove('hidden');
             downloadCsvBtn.classList.remove('hidden');
-            document.getElementById('complete-icon').classList.add('text-red-500');
-            document.getElementById('complete-icon').classList.remove('text-amber-400');
             displayRoundSummary();
             workoutScreen.classList.add('hidden');
             completeScreen.classList.remove('hidden');
         }
 
         function retryWorkout() {
-            // This function is now just for carrying over reps from a workout just ended in the same session.
-            // Firebase handles the cross-device/cross-session retries.
             previousAttemptCompleted += totalRepsCompleted;
             Object.keys(missedRepsByExercise).forEach(ex => {
                 previousAttemptMissedByExercise[ex] = (previousAttemptMissedByExercise[ex] || 0) + missedRepsByExercise[ex];
@@ -651,8 +676,6 @@
             if (totalFinalMissed > 0) retryBtn.classList.remove('hidden');
             else retryBtn.classList.add('hidden');
             downloadCsvBtn.classList.remove('hidden');
-            document.getElementById('complete-icon').classList.remove('text-red-500');
-            document.getElementById('complete-icon').classList.add('text-amber-400');
             displayRoundSummary();
             workoutScreen.classList.add('hidden');
             completeScreen.classList.remove('hidden');
@@ -662,7 +685,6 @@
         function resetApp() {
             clearInterval(totalTimerInterval);
             document.title = 'Rep Down';
-            document.getElementById('total-timer-container').classList.remove('text-red-500');
             if (previousAttemptCompleted > 0) {
                 retryInfoDisplay.textContent = `${previousAttemptCompleted} reps from your last attempt will be added.`;
                 retryInfoDisplay.classList.remove('hidden');
@@ -678,7 +700,6 @@
             exerciseError.classList.add('hidden');
             doneBtn.textContent = 'Start Next Round';
 
-            // Reset custom exercises
             customExercisesAdded = 0;
             document.querySelectorAll('.custom-exercise-item').forEach(el => el.remove());
             addExerciseBtn.classList.remove('hidden');
@@ -742,7 +763,6 @@
                 return;
             }
 
-            // Check for duplicates
             const allCheckboxes = document.querySelectorAll('#exercise-selection input[type="checkbox"]');
             const isDuplicate = Array.from(allCheckboxes).some(cb => cb.value.toLowerCase() === exerciseName.toLowerCase());
             if (isDuplicate) {
@@ -756,8 +776,8 @@
             newExerciseEl.className = 'flex items-center custom-exercise-item';
             
             newExerciseEl.innerHTML = `
-                <input id="${newId}" type="checkbox" checked value="${exerciseName}" class="w-5 h-5 text-amber-400 bg-gray-700 border-gray-600 rounded focus:ring-amber-500 focus:ring-2">
-                <label for="${newId}" class="ml-3 text-lg font-medium text-gray-300">${exerciseName}</label>
+                <input id="${newId}" type="checkbox" checked value="${exerciseName}" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2">
+                <label for="${newId}" class="ml-2 text-base font-medium text-gray-300">${exerciseName}</label>
             `;
             exerciseSelection.appendChild(newExerciseEl);
 
