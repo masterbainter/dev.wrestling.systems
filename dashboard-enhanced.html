@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Dashboard - Wrestling.Systems</title>
+
+    <!-- Favicon Links -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://assets.wrestling.systems/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://assets.wrestling.systems/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://assets.wrestling.systems/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://assets.wrestling.systems/favicon.ico">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Gold Color */
+        .bg-gold-500 { background-color: #D4AF37; }
+        .hover\:bg-gold-600:hover { background-color: #C09B2D; }
+        .text-gold-300 { color: #E6C75E; }
+        .border-gold-500 { border-color: #D4AF37; }
+        .focus\:ring-gold-500:focus { --tw-ring-color: #D4AF37; }
+        .focus\:border-gold-500:focus { border-color: #D4AF37; }
+        
+        #loader {
+            border: 5px solid #4b5563;
+            border-top: 5px solid #D4AF37;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-black text-gray-200 antialiased">
+    
+    <!-- User Status Display -->
+    <div id="user-status" class="absolute top-4 right-4 text-right hidden group z-10">
+        <div class="cursor-pointer">
+            <p class="text-gray-400 text-sm">Signed in as</p>
+            <p id="user-display-name" class="font-semibold text-white"></p>
+        </div>
+        <div class="absolute top-full right-0 mt-1 w-max bg-gray-800 rounded-md shadow-lg border border-gray-700 hidden group-hover:block transition-all text-left p-3 z-20">
+            <div class="flex items-center gap-2 border-b border-gray-600 pb-2 mb-2">
+                <span id="provider-icon-container" class="w-5 h-5"></span>
+                <span id="user-email-display" class="text-gray-300 text-sm"></span>
+            </div>
+            <button id="signout-btn" class="w-full text-left text-red-400 font-semibold hover:text-red-300">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-black to-gray-900 p-4">
+
+        <div class="w-full max-w-2xl mx-auto text-center pt-12">
+            <!-- Logo/Header -->
+            <a href="https://dev.wrestling.systems"><img src="https://assets.wrestling.systems/logo-gemini2.png" alt="Wrestling.Systems Logo" class="w-48 mx-auto mb-6"></a>
+        </div>
+
+        <div id="app-container" class="w-full max-w-2xl mx-auto bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700 mt-8">
+            
+            <div id="loader-container" class="flex flex-col items-center justify-center min-h-[300px]">
+                <div id="loader"></div>
+                <p class="mt-4 text-gold-300">Loading Dashboard...</p>
+            </div>
+            
+            <div id="dashboard-content" class="hidden">
+                <h1 class="text-3xl sm:text-4xl font-bold text-white text-center mb-6">Enhanced Athlete Dashboard</h1>
+
+                <!-- Your Athletes Section -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gold-300">Your Athletes</h2>
+                        <div class="text-sm text-gray-400">
+                            Total: <span id="athlete-count">0</span>
+                        </div>
+                    </div>
+                    <div id="athlete-list" class="space-y-4">
+                        <p id="no-athletes-msg" class="text-gray-400 text-center py-4 bg-gray-900/50 rounded-lg">No athletes found. Add one below to get started!</p>
+                    </div>
+                </div>
+
+                <!-- Add a New Athlete Section -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gold-300 mb-4">Add a New Athlete</h2>
+                    <div class="p-4 bg-black/30 rounded-lg">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="athlete-first-name" class="block text-sm font-medium text-gray-300 mb-2">First Name</label>
+                                <input type="text" id="athlete-first-name" placeholder="e.g., Maddox" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                            </div>
+                            <div>
+                                <label for="athlete-last-name" class="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
+                                <input type="text" id="athlete-last-name" placeholder="e.g., Smith" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="athlete-birth-date" class="block text-sm font-medium text-gray-300 mb-2">Birth Date (Optional)</label>
+                                <input type="date" id="athlete-birth-date" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                            </div>
+                            <div>
+                                <label for="athlete-relationship" class="block text-sm font-medium text-gray-300 mb-2">Relationship</label>
+                                <select id="athlete-relationship" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                    <option value="son">Son</option>
+                                    <option value="daughter">Daughter</option>
+                                    <option value="athlete">Athlete</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button id="save-athlete-btn" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500">Create Athlete Profile</button>
+                        <p id="add-athlete-error" class="text-red-400 text-sm mt-2 text-center h-5"></p>
+                    </div>
+                </div>
+
+                <!-- Data Migration Section -->
+                <div class="mb-8 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                    <h3 class="text-lg font-semibold text-blue-300 mb-2">📊 Enhanced Data Structure</h3>
+                    <p class="text-blue-200 text-sm mb-3">This enhanced dashboard uses the new unified data structure that supports both wrestling skills and fitness tracking.</p>
+                    <div class="text-xs text-blue-300 space-y-1">
+                        <p><strong>New Features:</strong></p>
+                        <ul class="list-disc list-inside ml-4 space-y-1">
+                            <li>Enhanced athlete profiles with detailed metadata</li>
+                            <li>Relationship tracking and permissions</li>
+                            <li>Support for profile transfer requests</li>
+                            <li>Unified progress tracking (skills + fitness)</li>
+                            <li>Backward compatibility with existing data</li>
+                        </ul>
+                    </div>
+                    <button id="migrate-data-btn" class="mt-3 text-sm bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded">
+                        Migrate Existing Athletes
+                    </button>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="https://dev.wrestling.systems/repdown" class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm font-medium text-black bg-gold-500 hover:bg-gold-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
+                        Go to Rep Down Challenge
+                    </a>
+                    <button id="view-analytics-btn" class="flex-1 flex justify-center py-3 px-4 border border-gray-600 rounded-md shadow-sm font-medium text-gray-300 bg-gray-700/50 hover:bg-gray-700 transition-all duration-300">
+                        View Analytics (Coming Soon)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // DOM Elements
+        const loaderContainer = document.getElementById('loader-container');
+        const dashboardContent = document.getElementById('dashboard-content');
+        const userStatusDiv = document.getElementById('user-status');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const providerIconContainer = document.getElementById('provider-icon-container');
+        const signOutBtn = document.getElementById('signout-btn');
+        const athleteListDiv = document.getElementById('athlete-list');
+        const noAthletesMsg = document.getElementById('no-athletes-msg');
+        const athleteCount = document.getElementById('athlete-count');
+        const saveAthleteBtn = document.getElementById('save-athlete-btn');
+        const addAthleteError = document.getElementById('add-athlete-error');
+        const migrateDataBtn = document.getElementById('migrate-data-btn');
+
+        // Form inputs
+        const athleteFirstName = document.getElementById('athlete-first-name');
+        const athleteLastName = document.getElementById('athlete-last-name');
+        const athleteBirthDate = document.getElementById('athlete-birth-date');
+        const athleteRelationship = document.getElementById('athlete-relationship');
+
+        // Firebase State
+        let auth, db, userId;
+
+        async function initFirebase() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
+                authDomain: "auth.wrestling.systems",
+                projectId: "wrestlingsystems",
+                storageBucket: "wrestlingsystems.appspot.com",
+                messagingSenderId: "255692661115",
+                appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
+                measurementId: "G-E52GDENT1E"
+            };
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    await populateUserInfo(user);
+                    await fetchAndDisplayAthletes();
+                    loaderContainer.classList.add('hidden');
+                    dashboardContent.classList.remove('hidden');
+                } else {
+                    window.location.href = 'https://dev.wrestling.systems/login';
+                }
+            });
+        }
+
+        async function populateUserInfo(user) {
+            const userRef = doc(db, "users", user.uid);
+            try {
+                const docSnap = await getDoc(userRef);
+                if (docSnap.exists() && docSnap.data().firstName) {
+                    userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
+                } else { 
+                    userDisplayName.textContent = user.displayName || user.email; 
+                }
+                const providerId = user.providerData[0]?.providerId || 'password';
+                providerIconContainer.innerHTML = getProviderIcon(providerId);
+                userEmailDisplay.textContent = user.email;
+                userStatusDiv.classList.remove('hidden');
+            } catch (error) { 
+                console.error("Error fetching user data:", error); 
+            }
+        }
+
+        async function fetchAndDisplayAthletes() {
+            athleteListDiv.innerHTML = '';
+            const userRef = doc(db, "users", userId);
+            const userSnap = await getDoc(userRef);
+            
+            let athletes = [];
+            
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                
+                // Handle enhanced structure (new)
+                if (userData.managedAthletes && typeof userData.managedAthletes === 'object' && !Array.isArray(userData.managedAthletes)) {
+                    for (const [athleteId, relationshipData] of Object.entries(userData.managedAthletes)) {
+                        const athleteRef = doc(db, "athletes", athleteId);
+                        const athleteSnap = await getDoc(athleteRef);
+                        if (athleteSnap.exists()) {
+                            athletes.push({
+                                id: athleteId,
+                                ...athleteSnap.data(),
+                                relationship: relationshipData.relationship,
+                                addedAt: relationshipData.addedAt,
+                                permissions: relationshipData.permissions || ["view", "edit", "workout"]
+                            });
+                        }
+                    }
+                }
+                // Handle legacy structure (old)
+                else if (userData.managedAthletes && Array.isArray(userData.managedAthletes)) {
+                    for (const athleteId of userData.managedAthletes) {
+                        const athleteRef = doc(db, "athletes", athleteId);
+                        const athleteSnap = await getDoc(athleteRef);
+                        if (athleteSnap.exists()) {
+                            athletes.push({
+                                id: athleteId,
+                                ...athleteSnap.data(),
+                                relationship: "athlete", // default for legacy data
+                                addedAt: null,
+                                permissions: ["view", "edit", "workout"],
+                                isLegacy: true
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (athletes.length === 0) {
+                athleteListDiv.appendChild(noAthletesMsg);
+                athleteCount.textContent = "0";
+            } else {
+                athleteCount.textContent = athletes.length;
+                athletes.forEach(athlete => {
+                    const athleteDiv = createAthleteCard(athlete);
+                    athleteListDiv.appendChild(athleteDiv);
+                });
+            }
+        }
+
+        function createAthleteCard(athlete) {
+            const div = document.createElement('div');
+            div.className = 'bg-gray-700/50 rounded-lg p-4 border border-gray-600';
+            
+            const ageText = athlete.birthDate ? ` (Age ${calculateAge(athlete.birthDate)})` : '';
+            const legacyBadge = athlete.isLegacy ? '<span class="ml-2 px-2 py-1 bg-yellow-600 text-yellow-100 text-xs rounded">Legacy</span>' : '';
+            
+            div.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-white text-lg">
+                            ${athlete.name || `${athlete.firstName || ''} ${athlete.lastName || ''}`.trim()}${ageText}
+                            ${legacyBadge}
+                        </h3>
+                        <div class="mt-2 space-y-1">
+                            <p class="text-sm text-gray-300">
+                                <span class="font-medium">Relationship:</span> 
+                                <span class="capitalize">${athlete.relationship}</span>
+                            </p>
+                            <p class="text-sm text-gray-300">
+                                <span class="font-medium">Permissions:</span> 
+                                ${athlete.permissions.join(', ')}
+                            </p>
+                            ${athlete.addedAt ? `
+                                <p class="text-sm text-gray-400">
+                                    Added: ${new Date(athlete.addedAt.toDate()).toLocaleDateString()}
+                                </p>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2 ml-4">
+                        <button 
+                            class="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                            onclick="viewAthleteProgress('${athlete.id}')"
+                        >
+                            View Progress
+                        </button>
+                        <button 
+                            class="text-red-400 hover:text-red-300 text-sm font-medium"
+                            onclick="deleteAthlete('${athlete.id}', '${athlete.name || athlete.firstName}')"
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        async function handleAddAthlete() {
+            const firstName = athleteFirstName.value.trim();
+            const lastName = athleteLastName.value.trim();
+            const birthDate = athleteBirthDate.value;
+            const relationship = athleteRelationship.value;
+
+            addAthleteError.textContent = '';
+
+            if (!firstName) {
+                addAthleteError.textContent = 'First name is required.';
+                return;
+            }
+
+            saveAthleteBtn.disabled = true;
+
+            try {
+                // Create enhanced athlete profile
+                const athleteData = {
+                    firstName,
+                    lastName,
+                    name: `${firstName} ${lastName}`.trim(),
+                    parentUserId: userId,
+                    birthDate: birthDate || null,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    
+                    // Initialize progress tracking structures
+                    skillsProgress: {},
+                    fitnessProgress: {},
+                    
+                    // Transfer system
+                    transferRequest: null
+                };
+
+                // Add to athletes collection
+                const athleteRef = await addDoc(collection(db, "athletes"), athleteData);
+                
+                // Create relationship data
+                const relationshipData = {
+                    relationship,
+                    addedAt: serverTimestamp(),
+                    permissions: ["view", "edit", "workout", "skills"]
+                };
+
+                // Update parent's managedAthletes with enhanced structure
+                const userRef = doc(db, "users", userId);
+                const userSnap = await getDoc(userRef);
+                
+                let updateData = {};
+                
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    
+                    // Initialize or enhance managedAthletes structure
+                    if (userData.managedAthletes && Array.isArray(userData.managedAthletes)) {
+                        // Migrate from legacy array to enhanced object
+                        const enhancedAthletes = {};
+                        for (const athleteId of userData.managedAthletes) {
+                            enhancedAthletes[athleteId] = {
+                                relationship: "athlete",
+                                addedAt: serverTimestamp(),
+                                permissions: ["view", "edit", "workout"]
+                            };
+                        }
+                        enhancedAthletes[athleteRef.id] = relationshipData;
+                        updateData.managedAthletes = enhancedAthletes;
+                    } else {
+                        // Add to existing enhanced structure or create new
+                        updateData[`managedAthletes.${athleteRef.id}`] = relationshipData;
+                    }
+                } else {
+                    // Create new user document with enhanced structure
+                    updateData.managedAthletes = {
+                        [athleteRef.id]: relationshipData
+                    };
+                }
+
+                await setDoc(userRef, updateData, { merge: true });
+
+                // Clear form
+                athleteFirstName.value = '';
+                athleteLastName.value = '';
+                athleteBirthDate.value = '';
+                athleteRelationship.value = 'son';
+
+                // Refresh display
+                await fetchAndDisplayAthletes();
+
+            } catch (error) {
+                console.error("Error adding athlete:", error);
+                addAthleteError.textContent = "Could not save athlete. Please try again.";
+            } finally {
+                saveAthleteBtn.disabled = false;
+            }
+        }
+
+        async function migrateExistingData() {
+            const userRef = doc(db, "users", userId);
+            const userSnap = await getDoc(userRef);
+            
+            if (!userSnap.exists()) return;
+            
+            const userData = userSnap.data();
+            
+            // Check if migration is needed
+            if (!userData.managedAthletes || !Array.isArray(userData.managedAthletes)) {
+                alert('No legacy data found to migrate.');
+                return;
+            }
+
+            try {
+                migrateDataBtn.disabled = true;
+                migrateDataBtn.textContent = 'Migrating...';
+
+                const enhancedAthletes = {};
+                
+                for (const athleteId of userData.managedAthletes) {
+                    enhancedAthletes[athleteId] = {
+                        relationship: "athlete",
+                        addedAt: serverTimestamp(),
+                        permissions: ["view", "edit", "workout"]
+                    };
+                }
+
+                await setDoc(userRef, {
+                    managedAthletes: enhancedAthletes
+                }, { merge: true });
+
+                alert('Data migration completed successfully!');
+                await fetchAndDisplayAthletes();
+
+            } catch (error) {
+                console.error("Error migrating data:", error);
+                alert('Migration failed. Please try again.');
+            } finally {
+                migrateDataBtn.disabled = false;
+                migrateDataBtn.textContent = 'Migrate Existing Athletes';
+            }
+        }
+
+        function calculateAge(birthDate) {
+            const today = new Date();
+            const birth = new Date(birthDate);
+            let age = today.getFullYear() - birth.getFullYear();
+            const monthDiff = today.getMonth() - birth.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                age--;
+            }
+            return age;
+        }
+
+        function getProviderIcon(providerId) {
+            switch (providerId) {
+                case 'google.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
+                case 'facebook.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
+                case 'microsoft.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
+                default:
+                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
+            }
+        }
+
+        // Global functions for onclick handlers
+        window.viewAthleteProgress = function(athleteId) {
+            alert(`View progress for athlete ${athleteId} (Coming soon!)`);
+        };
+
+        window.deleteAthlete = function(athleteId, athleteName) {
+            if (confirm(`Are you sure you want to delete ${athleteName}? This cannot be undone.`)) {
+                // Implementation would go here
+                alert('Delete functionality coming soon!');
+            }
+        };
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+            
+            signOutBtn.addEventListener('click', () => signOut(auth));
+            saveAthleteBtn.addEventListener('click', handleAddAthlete);
+            migrateDataBtn.addEventListener('click', migrateExistingData);
+        });
+    </script>
+</body>
+</html>
