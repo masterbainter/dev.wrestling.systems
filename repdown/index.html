@@ -54,10 +54,19 @@
     
     <!-- User Status Display -->
     <div id="user-status" class="absolute top-4 right-4 text-right hidden group z-10">
-        <p class="text-gray-400 text-sm">Signed in as</p>
-        <p id="user-display-name" class="font-semibold text-white"></p>
-        <button id="signout-btn" class="absolute top-11 right-0 w-max bg-gray-800 text-red-400 font-semibold px-3 py-1.5 rounded-md shadow-lg border border-gray-700 hidden group-hover:block transition-all mt-1">Sign Out</button>
+        <div class="cursor-pointer">
+            <p class="text-gray-400 text-sm">Signed in as</p>
+            <p id="user-display-name" class="font-semibold text-white"></p>
+        </div>
+        <div class="absolute top-full right-0 mt-1 w-max bg-gray-800 rounded-md shadow-lg border border-gray-700 hidden group-hover:block transition-all text-left p-3 z-20">
+            <div class="flex items-center gap-2 border-b border-gray-600 pb-2 mb-2">
+                <span id="provider-icon-container" class="w-5 h-5"></span>
+                <span id="user-email-display" class="text-gray-300 text-sm"></span>
+            </div>
+            <button id="signout-btn" class="w-full text-left text-red-400 font-semibold hover:text-red-300">Sign Out</button>
+        </div>
     </div>
+
 
     <!-- Main Container -->
     <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-black to-gray-900 p-4">
@@ -192,6 +201,8 @@
         
         const userStatusDiv = document.getElementById('user-status');
         const userDisplayName = document.getElementById('user-display-name');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const providerIconContainer = document.getElementById('provider-icon-container');
         const signOutBtn = document.getElementById('signout-btn');
         
         const repsInput = document.getElementById('reps-input');
@@ -241,6 +252,21 @@
         let app, auth, db, userId;
         const appId = 'rep-down-challenge';
 
+        // --- Helper Functions ---
+        function getProviderIcon(providerId) {
+            switch (providerId) {
+                case 'google.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
+                case 'facebook.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
+                case 'microsoft.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
+                case 'password':
+                default:
+                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
+            }
+        }
+
         // --- Firebase Initialization ---
         async function initFirebase() {
             try {
@@ -274,6 +300,11 @@
                             console.error("Error fetching user data:", error);
                             userDisplayName.textContent = user.displayName || user.email;
                         }
+
+                        // Populate user details dropdown
+                        const providerId = user.providerData[0]?.providerId || 'password';
+                        providerIconContainer.innerHTML = getProviderIcon(providerId);
+                        userEmailDisplay.textContent = user.email;
                         
                         userStatusDiv.classList.remove('hidden');
                         await fetchLastWorkout();
@@ -353,7 +384,6 @@
             }
         }
 
-        // --- Helper Functions ---
         function sumOfN(n) {
             if (n <= 0) return 0;
             return n * (n + 1) / 2;
