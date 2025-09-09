@@ -211,7 +211,7 @@
         const userIdDisplay = document.getElementById('user-id-display');
         
         // App State
-        let startingReps = 10;
+        let startingRps = 10;
         let currentReps = 10;
         let totalTimerInterval;
         let selectedExercises = [];
@@ -269,10 +269,10 @@
                                     account to use this app.
                                 </p>
                                 <div class="mt-6 flex flex-col sm:flex-row gap-4">
-                                    <a href="https://wrestling.systems/login" target="_blank" class="w-full bg-transparent hover:bg-amber-400 text-amber-400 hover:text-black font-bold text-lg py-3 px-6 rounded-xl border-2 border-amber-400 btn-glow">
+                                    <a href="https://dev.wrestling.systems/login" target="_blank" class="w-full bg-transparent hover:bg-amber-400 text-amber-400 hover:text-black font-bold text-lg py-3 px-6 rounded-xl border-2 border-amber-400 btn-glow">
                                         Sign In
                                     </a>
-                                    <a href="https://wrestling.systems/register" target="_blank" class="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold text-lg py-3 px-6 rounded-xl border-2 border-amber-400 btn-glow">
+                                    <a href="https://dev.wrestling.systems/register" target="_blank" class="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold text-lg py-3 px-6 rounded-xl border-2 border-amber-400 btn-glow">
                                         Register
                                     </a>
                                 </div>
@@ -319,7 +319,7 @@
                 const workoutData = {
                     status: status,
                     createdAt: serverTimestamp(),
-                    startingReps: startingReps,
+                    startingReps: startingRps,
                     selectedExercises: selectedExercises,
                     roundTimes: roundTimes,
                     totalRepsCompleted: totalRepsCompleted,
@@ -411,15 +411,15 @@
 
         function startWorkout() {
             if (!validateInputs()) return;
-            startingReps = parseInt(repsInput.value);
-            currentReps = startingReps;
+            startingRps = parseInt(repsInput.value);
+            currentReps = startingRps;
             totalRepsCompleted = 0;
             missedRepsByExercise = {};
             roundTimes = [];
             totalRecommendedReps = sumOfN(recommendedReps) * selectedExercises.length;
             exerciseStates = {};
             selectedExercises.forEach(name => {
-                exerciseStates[name] = startingReps;
+                exerciseStates[name] = startingRps;
                 missedRepsByExercise[name] = 0;
             });
             updateRepDisplay();
