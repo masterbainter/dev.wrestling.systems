@@ -18,24 +18,13 @@
             font-family: 'Inter', sans-serif;
             touch-action: manipulation;
         }
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
         /* Custom Gold Color */
         .bg-gold-500 { background-color: #D4AF37; }
         .hover\:bg-gold-600:hover { background-color: #C09B2D; }
         .text-gold-300 { color: #E6C75E; }
         .border-gold-500 { border-color: #D4AF37; }
         .focus\:ring-gold-500:focus { --tw-ring-color: #D4AF37; }
-        .focus\:border-gold-500:focus { border-color: #D4AF37; }
-        .text-gold-400 { color: #D4AF37; } /* A slightly darker gold for main buttons */
-        .hover\:text-gold-300:hover { color: #E6C75E; }
-
+        
         #loader {
             border: 5px solid #4b5563; /* gray-600 */
             border-top: 5px solid #D4AF37; /* gold-500 */
@@ -77,12 +66,12 @@
     <!-- Main Container -->
     <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-black to-gray-900 p-4">
 
-        <div class="w-full max-w-2xl mx-auto text-center pt-12">
+        <div class="w-full max-w-3xl mx-auto text-center pt-12">
             <!-- Logo/Header -->
             <a href="https://dev.wrestling.systems"><img src="https://assets.wrestling.systems/logo-gemini2.png" alt="Wrestling.Systems Logo" class="w-48 mx-auto mb-6"></a>
         </div>
 
-        <div id="app-container" class="w-full max-w-2xl mx-auto bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700 mt-8">
+        <div id="app-container" class="w-full max-w-3xl mx-auto bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700 mt-8">
             
             <div id="loader-container" class="flex flex-col items-center justify-center min-h-[400px]">
                 <div id="loader"></div>
@@ -108,39 +97,6 @@
                 </button>
             </div>
 
-
-            <!-- Setup Screen -->
-            <div id="setup-screen" class="hidden">
-                <h1 class="text-3xl sm:text-4xl font-bold text-white text-center mb-2">Rep Down Challenge</h1>
-                <p id="current-athlete-name" class="text-lg text-center text-gray-300 mb-4 font-bold text-gold-300"></p>
-
-                <p id="retry-info" class="text-cyan-400 text-lg my-3 text-center hidden"></p>
-                <p id="current-date" class="text-gray-400 text-base text-center mb-1"></p>
-                <p id="challenge-day-info" class="text-gold-300 font-bold text-xl text-center mb-4"></p>
-                
-                <div class="bg-black/30 p-6 rounded-xl">
-                    <p id="recommended-reps" class="text-gray-300 text-base text-center mb-5"></p>
-                    <div class="mb-5">
-                        <label class="block text-sm font-medium text-gray-300 mb-3 text-center">Select Your Exercises</label>
-                        <div id="exercise-selection" class="space-y-2 text-left w-fit mx-auto">
-                            <!-- Default exercises -->
-                        </div>
-                        <div id="add-exercise-container" class="mt-3 text-center">
-                            <!-- Add exercise UI -->
-                        </div>
-                        <p id="exercise-error" class="text-red-400 text-sm mt-2 text-center hidden">Please select at least one exercise.</p>
-                    </div>
-                    <div class="mb-4">
-                        <label for="reps-input" class="block text-sm font-medium text-gray-300 mb-2 text-center">Starting Reps</label>
-                        <input type="number" id="reps-input" value="10" min="1" max="100" class="w-full text-center bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white text-2xl font-bold focus:outline-none focus:ring-gold-500 focus:border-gold-500">
-                        <p id="reps-error" class="text-red-400 text-sm mt-2 text-center hidden">Please enter a number between 1 and 100.</p>
-                    </div>
-                    <button id="start-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm font-medium text-white bg-gold-500 hover:bg-gold-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
-                        Start Workout
-                    </button>
-                </div>
-            </div>
-
             <!-- Workout Screen -->
             <div id="workout-screen" class="hidden relative">
                  <button id="switch-athlete-btn" class="absolute top-0 left-0 text-sm text-gray-400 hover:text-gold-300">&larr; Switch Athlete</button>
@@ -151,7 +107,6 @@
                 <div id="rep-display" class="mb-4 text-center">
                     <p class="text-gray-400 text-lg font-medium">Current Round</p>
                     <p id="current-reps" class="text-7xl font-extrabold text-gold-300">10</p>
-                    <p class="text-gray-400 text-lg font-medium">Reps per Exercise</p>
                 </div>
 
                 <div id="exercise-grid" class="my-6 bg-black/30 p-2 sm:p-4 rounded-xl overflow-x-auto">
@@ -168,7 +123,7 @@
 
             <!-- Completion Screen -->
             <div id="complete-screen" class="hidden">
-                 <h1 id="complete-title" class="text-3xl font-extrabold text-gold-300 mb-5 text-center">Well Done!</h1>
+                 <h1 id="complete-title" class="text-3xl font-extrabold text-gold-300 mb-5 text-center">Workout Complete!</h1>
                 <div id="completion-summary-container" class="space-y-6">
                     <!-- Athlete summaries will be injected here -->
                 </div>
@@ -184,32 +139,111 @@
     </div>
 
     <script type="module">
-        // --- IMPORTS ---
-        // (Same as before)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // DOM Elements
+        const loaderContainer = document.getElementById('loader-container');
+        const athleteHubScreen = document.getElementById('athlete-hub-screen');
+        const workoutScreen = document.getElementById('workout-screen');
+        const completeScreen = document.getElementById('complete-screen');
         
-        // --- DOM ELEMENTS ---
-        // (Most are the same, new ones added below)
+        const userStatusDiv = document.getElementById('user-status');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const providerIconContainer = document.getElementById('provider-icon-container');
+        const signOutBtn = document.getElementById('signout-btn');
+
+        const athleteListDiv = document.getElementById('athlete-list');
+        const noAthletesMsg = document.getElementById('no-athletes-msg');
         const letsGoBtn = document.getElementById('lets-go-btn');
         const selectionCount = document.getElementById('selection-count');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        
+        const switchAthleteBtn = document.getElementById('switch-athlete-btn');
+        const currentRpsDisplay = document.getElementById('current-reps');
+        const totalTimerDisplay = document.getElementById('total-timer');
         const exerciseGrid = document.getElementById('exercise-grid');
+        const doneBtn = document.getElementById('done-btn');
+        const endBtn = document.getElementById('end-btn');
+
+        const completeTitle = document.getElementById('complete-title');
         const completionSummaryContainer = document.getElementById('completion-summary-container');
+        const backToHubBtn = document.getElementById('back-to-hub-btn');
 
+        // App State
+        let selectedAthletes = []; 
+        let startingRps = 10;
+        let currentRps = 10;
+        let workoutExercises = ['Pushups', 'Squats', 'V-ups'];
+        let totalTimerInterval;
+        let roundStartTime;
 
-        // --- APP STATE ---
-        let selectedAthletes = []; // Array of { id, name } objects
-        // ... other state variables
+        // Nested state objects for multi-athlete tracking
+        let exerciseStates = {}; // { athleteId: { exerciseName: repsLeft } }
+        let roundCompletionStates = {}; // { athleteId: { exerciseName: isDoneForRound } }
+        let workoutTotals = {}; // { athleteId: { completed: 0, missed: 0 } }
         
-        // --- FIREBASE & AUTH LOGIC (onAuthStateChanged, etc) ---
-        // (Mostly the same, but calls fetchAndDisplayAthletesForSelection)
-        
+        // Firebase State
+        let auth, db, userId;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
+            authDomain: "auth.wrestling.systems",
+            projectId: "wrestlingsystems",
+            storageBucket: "wrestlingsystems.appspot.com",
+            messagingSenderId: "255692661115",
+            appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
+            measurementId: "G-E52GDENT1E"
+        };
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                await populateUserInfo(user);
+                await fetchAndDisplayAthletesForSelection();
+                loaderContainer.classList.add('hidden');
+                athleteHubScreen.classList.remove('hidden');
+            } else {
+                showLoginPrompt();
+            }
+        });
+
+        async function populateUserInfo(user) {
+            const userRef = doc(db, "users", user.uid);
+            try {
+                const docSnap = await getDoc(userRef);
+                if (docSnap.exists() && docSnap.data().firstName) {
+                    userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
+                } else { userDisplayName.textContent = user.displayName || user.email; }
+                const providerId = user.providerData[0]?.providerId || 'password';
+                providerIconContainer.innerHTML = getProviderIcon(providerId);
+                userEmailDisplay.textContent = user.email;
+                userStatusDiv.classList.remove('hidden');
+            } catch (error) { console.error("Error fetching user data:", error); }
+        }
+
         async function fetchAndDisplayAthletesForSelection() {
-            // ... (Fetches athletes like before) ...
+            athleteListDiv.innerHTML = '';
+            const userRef = doc(db, "users", userId);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists() || !userSnap.data().managedAthletes || userSnap.data().managedAthletes.length === 0) {
+                athleteListDiv.appendChild(noAthletesMsg);
+                noAthletesMsg.classList.remove('hidden');
+                return;
+            }
             
-            // Instead of buttons that start workout, create selectable divs
+            noAthletesMsg.classList.add('hidden');
+            const athleteIds = userSnap.data().managedAthletes;
             for (const athleteId of athleteIds) {
-                // ...
+                const athleteRef = doc(db, "athletes", athleteId);
+                const athleteSnap = await getDoc(athleteRef);
                 if (athleteSnap.exists()) {
-                    // ...
+                    const athleteData = athleteSnap.data();
                     const athleteEl = document.createElement('div');
                     athleteEl.className = 'athlete-selectable w-full text-left font-semibold text-lg p-4 bg-gray-700/50 hover:bg-gray-700 rounded-md transition-all border-2 border-transparent cursor-pointer';
                     athleteEl.textContent = athleteData.firstName;
@@ -225,25 +259,18 @@
         function toggleAthleteSelection(el) {
             const isSelected = el.dataset.selected === 'true';
             const currentlySelected = document.querySelectorAll('.athlete-selectable[data-selected="true"]').length;
-
             if (!isSelected && currentlySelected >= 5) {
                 alert("You can select a maximum of 5 athletes.");
                 return;
             }
-
             el.dataset.selected = isSelected ? 'false' : 'true';
             updateSelectionUI();
         }
 
         function updateSelectionUI() {
             const selectedElements = document.querySelectorAll('.athlete-selectable[data-selected="true"]');
-            selectedAthletes = Array.from(selectedElements).map(el => ({
-                id: el.dataset.athleteId,
-                name: el.dataset.athleteName
-            }));
-
+            selectedAthletes = Array.from(selectedElements).map(el => ({ id: el.dataset.athleteId, name: el.dataset.athleteName }));
             selectionCount.textContent = `Selected ${selectedAthletes.length} of 5 athletes.`;
-
             if (selectedAthletes.length > 0) {
                 letsGoBtn.classList.remove('hidden');
                 letsGoBtn.disabled = false;
@@ -253,126 +280,234 @@
             }
         }
         
-        // Event listener for the new "Let's Go!" button
-        letsGoBtn.addEventListener('click', () => {
-             // We don't need a separate setup screen anymore, we can go straight to the workout
-            athleteHubScreen.classList.add('hidden');
-            startWorkout(); // Modified startWorkout will handle everything
-        });
-
         function startWorkout() {
-            // This function now replaces selectAthlete and the old startWorkout logic
-            // It needs to set up the state for ALL selected athletes
-            startingRps = 10; // For simplicity, let's hardcode for now, can add UI later
-            currentReps = startingRps;
+            startingRps = 10; // Hardcoded for now
+            currentRps = startingRps;
             
-            // Reset states
+            // Reset and initialize states for all selected athletes
             exerciseStates = {};
-            // Will become { athleteId: { exerciseName: reps } }
-            
-            // Initialize state for each selected athlete
+            roundCompletionStates = {};
+            workoutTotals = {};
             selectedAthletes.forEach(athlete => {
                 exerciseStates[athlete.id] = {};
-                // Let's assume default exercises for now
-                ['Pushups', 'Squats', 'V-ups'].forEach(ex => {
+                roundCompletionStates[athlete.id] = {};
+                workoutTotals[athlete.id] = { completed: 0, missed: 0 };
+                workoutExercises.forEach(ex => {
                     exerciseStates[athlete.id][ex] = startingRps;
+                    roundCompletionStates[athlete.id][ex] = false;
                 });
             });
 
-            buildExerciseGrid(); // New function to build the grid UI
+            currentRpsDisplay.textContent = currentRps;
+            updateDoneButtonText();
+            buildExerciseGrid();
+            startTotalTimer();
             
-            // ... (start timers, etc.)
-            
+            athleteHubScreen.classList.add('hidden');
             workoutScreen.classList.remove('hidden');
         }
 
         function buildExerciseGrid() {
-            exerciseGrid.innerHTML = ''; // Clear previous grid
-            const exercises = ['Pushups', 'Squats', 'V-ups']; // Assume default for now
-
-            // 1. Create Header Row
-            let headerHtml = '<div class="font-bold text-sm text-center text-gray-400">Athlete</div>';
-            exercises.forEach(ex => {
-                headerHtml += `<div class="font-bold text-sm text-center text-gray-400">${ex}</div>`;
+            exerciseGrid.innerHTML = ''; 
+            
+            let headerHtml = '<div class="font-bold text-sm text-center text-gray-400 sticky left-0 bg-black/30 z-10 p-2">Athlete</div>';
+            workoutExercises.forEach(ex => {
+                headerHtml += `<div class="font-bold text-sm text-center text-gray-400 p-2">${ex}</div>`;
             });
             
-            // Set grid columns based on number of exercises + 1 for names
             exerciseGrid.style.display = 'grid';
-            exerciseGrid.style.gridTemplateColumns = `1.5fr repeat(${exercises.length}, 1fr)`;
+            exerciseGrid.style.gridTemplateColumns = `minmax(120px, 1.5fr) repeat(${workoutExercises.length}, minmax(100px, 1fr))`;
             exerciseGrid.style.gap = '8px';
+            exerciseGrid.innerHTML = headerHtml;
 
-            exerciseGrid.innerHTML += headerHtml;
-
-            // 2. Create Athlete Rows
             selectedAthletes.forEach(athlete => {
-                let athleteRowHtml = `<div class="font-semibold text-gold-300 p-2 flex items-center justify-center text-center">${athlete.name}</div>`;
-
-                exercises.forEach(ex => {
-                    // This is complex, will need a function to generate the button state/color
-                    athleteRowHtml += `
-                        <div class="bg-gray-800 p-2 rounded-md text-center">
-                            <button data-athlete-id="${athlete.id}" data-exercise-name="${ex}" class="complete-exercise-btn bg-gold-500 hover:bg-gold-600 text-black font-bold py-2 px-4 rounded-md text-sm">
-                                Done
-                            </button>
-                            <div class="text-xs mt-1 text-green-400">On Target</div>
-                        </div>
-                    `;
+                exerciseGrid.innerHTML += `<div class="font-semibold text-gold-300 p-2 flex items-center justify-center text-center sticky left-0 bg-black/30 z-10">${athlete.name}</div>`;
+                workoutExercises.forEach(ex => {
+                    exerciseGrid.innerHTML += `<div id="cell-${athlete.id}-${ex.replace(/\s+/g, '-')}" class="bg-gray-800 p-2 rounded-md text-center"></div>`;
                 });
-                exerciseGrid.innerHTML += athleteRowHtml;
             });
-            
-            // Add event listeners to all new buttons
-            document.querySelectorAll('.complete-exercise-btn').forEach(btn => {
-                btn.onclick = () => {
-                    const athleteId = btn.dataset.athleteId;
-                    const exerciseName = btn.dataset.exerciseName;
-                    markExerciseComplete(athleteId, exerciseName, btn);
-                };
+            updateAllGridCells();
+        }
+
+        function updateAllGridCells() {
+            selectedAthletes.forEach(athlete => {
+                workoutExercises.forEach(ex => {
+                    updateGridCell(athlete.id, ex);
+                });
             });
         }
         
-        function markExerciseComplete(athleteId, exerciseName, buttonElement) {
-            // New logic to update the nested exerciseStates object for the specific athlete
-            // And then update just that single button's UI
-            console.log(`Marking ${exerciseName} done for ${athleteId}`);
-            
-            const state = exerciseStates[athleteId][exerciseName];
-            
-            if (state > currentReps) {
-                 exerciseStates[athleteId][exerciseName]--;
-                 // Update UI for this button and status
-            } else if (state === currentReps) {
-                buttonElement.disabled = true;
-                buttonElement.textContent = '✔';
-                buttonElement.classList.remove('bg-gold-500', 'hover:bg-gold-600');
-                buttonElement.classList.add('bg-green-600');
-                 // Update UI
+        function updateGridCell(athleteId, exerciseName) {
+            const cell = document.getElementById(`cell-${athleteId}-${exerciseName.replace(/\s+/g, '-')}`);
+            if(!cell) return;
+
+            const repsLeft = exerciseStates[athleteId][exerciseName];
+            const isDoneForRound = roundCompletionStates[athleteId][exerciseName];
+            const repsBehind = repsLeft - currentRps;
+
+            let buttonHtml, statusHtml, buttonClasses;
+
+            if (isDoneForRound) {
+                buttonHtml = `<button disabled class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md text-sm">✔</button>`;
+                statusHtml = `<div class="text-xs mt-1 text-gray-400">Done</div>`;
+            } else {
+                buttonClasses = 'bg-gold-500 hover:bg-gold-600 text-black';
+                if (repsBehind > 3) buttonClasses = 'bg-red-600 hover:bg-red-500 text-white';
+                else if (repsBehind > 0) buttonClasses = 'bg-yellow-600 hover:bg-yellow-500 text-black';
+
+                buttonHtml = `<button data-athlete-id="${athleteId}" data-exercise-name="${exerciseName}" class="complete-exercise-btn w-full ${buttonClasses} font-bold py-2 px-4 rounded-md text-sm">Done</button>`;
+                
+                if (repsBehind > 0) statusHtml = `<div class="text-xs mt-1 text-yellow-400">${repsLeft} left</div>`;
+                else statusHtml = `<div class="text-xs mt-1 text-green-400">On Target</div>`;
             }
+            cell.innerHTML = buttonHtml + statusHtml;
         }
-        
-        function finishWorkout() {
-             // ...
-             completionSummaryContainer.innerHTML = '';
-             selectedAthletes.forEach(athlete => {
-                // Generate a summary block for each athlete
+
+        function markExerciseComplete(athleteId, exerciseName) {
+            const repsLeft = exerciseStates[athleteId][exerciseName];
+            if (repsLeft > currentRps) {
+                exerciseStates[athleteId][exerciseName]--;
+                workoutTotals[athleteId].completed++;
+            } else if (repsLeft === currentRps) {
+                roundCompletionStates[athleteId][exerciseName] = true;
+                workoutTotals[athleteId].completed += currentRps;
+            }
+            updateGridCell(athleteId, exerciseName);
+        }
+
+        function completeRound() {
+            // Process totals for the round
+            selectedAthletes.forEach(athlete => {
+                workoutExercises.forEach(ex => {
+                    if (!roundCompletionStates[athlete.id][ex]) {
+                        workoutTotals[athlete.id].missed += exerciseStates[athlete.id][ex];
+                    }
+                    // Decrement reps for next round, even if missed
+                    exerciseStates[athlete.id][ex] = currentRps - 1;
+                    roundCompletionStates[athlete.id][ex] = false;
+                });
+            });
+
+            currentRps--;
+            if (currentRps <= 0) {
+                finishWorkout(true); // true = completed
+                return;
+            }
+            
+            currentRpsDisplay.textContent = currentRps;
+            updateDoneButtonText();
+            updateAllGridCells();
+            startTotalTimer();
+        }
+
+        function endWorkout() {
+            // Calculate missed reps for all remaining rounds
+            selectedAthletes.forEach(athlete => {
+                workoutExercises.forEach(ex => {
+                     // Add missed reps from current round
+                    if (!roundCompletionStates[athlete.id][ex]) {
+                        workoutTotals[athlete.id].missed += exerciseStates[athlete.id][ex];
+                    }
+                    // Add all reps from future rounds
+                    if (currentRps > 1) {
+                        workoutTotals[athlete.id].missed += (currentRps - 1) * currentRps / 2;
+                    }
+                });
+            });
+            finishWorkout(false); // false = incomplete
+        }
+
+        function finishWorkout(isComplete) {
+            clearInterval(totalTimerInterval);
+            completeTitle.textContent = isComplete ? "Workout Complete!" : "Workout Ended";
+            completionSummaryContainer.innerHTML = '';
+            
+            selectedAthletes.forEach(athlete => {
+                const totals = workoutTotals[athlete.id];
                 const summaryHtml = `
                     <div class="bg-black/30 p-4 rounded-xl">
                          <h2 class="text-xl font-bold text-gold-300 text-center mb-2">${athlete.name}'s Summary</h2>
-                         <p class="text-center text-lg">Total Reps: 165</p> 
-                         <p class="text-center text-red-400">Missed Reps: 0</p>
-                    </div>
-                `;
+                         <p class="text-center text-lg text-green-400">Total Reps Completed: ${totals.completed}</p> 
+                         <p class="text-center text-red-400">Total Reps Missed: ${totals.missed}</p>
+                    </div>`;
                 completionSummaryContainer.innerHTML += summaryHtml;
-             });
+                saveWorkoutData(athlete.id, isComplete);
+            });
              
-             workoutScreen.classList.add('hidden');
-             completeScreen.classList.remove('hidden');
+            workoutScreen.classList.add('hidden');
+            completeScreen.classList.remove('hidden');
         }
 
+        async function saveWorkoutData(athleteId, isComplete) {
+            const totals = workoutTotals[athleteId];
+            const workoutData = {
+                status: isComplete ? 'completed' : 'incomplete',
+                createdAt: serverTimestamp(),
+                startingRps: startingRps,
+                exercises: workoutExercises,
+                totalRepsCompleted: totals.completed,
+                totalRepsMissed: totals.missed,
+            };
+            try {
+                await addDoc(collection(db, `athletes/${athleteId}/workouts`), workoutData);
+            } catch (error) { console.error(`Failed to save workout for ${athleteId}`, error); }
+        }
 
-        // --- ALL OTHER FUNCTIONS (completeRound, endWorkout, timers, etc.) need to be refactored ---
-        // --- to handle the multi-athlete data structure. The code above is a structural guide. ---
+        function updateDoneButtonText() {
+            doneBtn.textContent = currentRps === 1 ? "Finish Workout" : "Start Next Round";
+        }
+        
+        function startTotalTimer() {
+            // ... same timer logic as before
+        }
+        
+        function showHubScreen() {
+            workoutScreen.classList.add('hidden');
+            completeScreen.classList.add('hidden');
+            athleteHubScreen.classList.remove('hidden');
+            updateSelectionUI(); // Reset selection UI
+        }
+        
+        function showLoginPrompt() {
+            loaderContainer.classList.remove('hidden');
+            athleteHubScreen.classList.add('hidden');
+            workoutScreen.classList.add('hidden');
+            completeScreen.classList.add('hidden');
+            loaderContainer.innerHTML = `
+                <div class="p-4 text-center">
+                    <p class="text-lg text-gold-300">Please sign in to your<br><span class="font-bold">wrestling.systems</span> account to use this app.</p>
+                    <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                        <a href="https://dev.wrestling.systems/login" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm font-medium text-black bg-gold-500 hover:bg-gold-600">Sign In</a>
+                        <a href="https://dev.wrestling.systems/register" class="w-full flex justify-center py-2.5 px-4 border border-gray-600 rounded-md font-medium text-white bg-gray-700 hover:bg-gray-600">Register</a>
+                    </div>
+                </div>`;
+        }
 
+        function getProviderIcon(providerId) { /* ... same as before ... */ }
+        
+        // --- EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            signOutBtn.addEventListener('click', () => signOut(auth));
+            backToDashboardBtn.addEventListener('click', () => window.location.href = 'https://dev.wrestling.systems/dashboard');
+            letsGoBtn.addEventListener('click', startWorkout);
+            switchAthleteBtn.addEventListener('click', showHubScreen);
+            doneBtn.addEventListener('click', completeRound);
+            endBtn.addEventListener('click', endWorkout);
+            backToHubBtn.addEventListener('click', showHubScreen);
+            // Attaching listeners for dynamically created buttons inside the functions that create them.
+            // (e.g., inside buildExerciseGrid)
+        });
+
+        // Add onclick listeners for dynamically created buttons inside the grid
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('complete-exercise-btn')) {
+                const btn = event.target;
+                const athleteId = btn.dataset.athleteId;
+                const exerciseName = btn.dataset.exerciseName;
+                markExerciseComplete(athleteId, exerciseName);
+            }
+        });
+        
     </script>
 </body>
 </html>
