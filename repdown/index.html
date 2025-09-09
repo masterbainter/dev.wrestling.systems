@@ -253,73 +253,13 @@
         let roundStartTime;
         let isWorkoutInProgress = false;
 
-        let exerciseStates = {};
+        let exerciseDebt = {}; // { athleteId: { exerciseName: debt } }
         let roundCompletionStates = {};
         let workoutTotals = {};
         
         // Firebase State
         let auth, db, userId;
 
-        function getProviderIcon(providerId) {
-             switch (providerId) {
-                case 'google.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
-                case 'facebook.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
-                case 'microsoft.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
-                case 'password':
-                default:
-                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
-            }
-        }
-        
-        function startTotalTimer() {
-            clearInterval(totalTimerInterval);
-            roundStartTime = Date.now();
-            let timeLeft = 600; // 10 minutes
-            let isOvertime = false;
-            totalTimerDisplay.textContent = formatTime(timeLeft);
-            
-            totalTimerInterval = setInterval(() => {
-                timeLeft--;
-                const formattedTime = formatTime(timeLeft);
-                totalTimerDisplay.textContent = formattedTime;
-
-                if (timeLeft < 0 && !isOvertime) {
-                    isOvertime = true;
-                    totalTimerDisplay.parentElement.querySelector('p').textContent = "Finish Your Reps!";
-                    totalTimerDisplay.parentElement.querySelector('p').classList.add('text-red-500');
-                    totalTimerDisplay.classList.add('text-red-500');
-                } 
-            }, 1000);
-        }
-
-        function formatTime(seconds) {
-            const isNegative = seconds < 0;
-            if(isNegative) seconds = Math.abs(seconds);
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            const formattedSeconds = remainingSeconds < 10 ? '0' + remainingSeconds : remainingSeconds;
-            return isNegative ? `+${minutes}:${formattedSeconds}` : `${minutes}:${formattedSeconds}`;
-        }
-        
-        function showLoginPrompt() {
-            loaderContainer.classList.remove('hidden');
-            athleteHubScreen.classList.add('hidden');
-            setupScreen.classList.add('hidden');
-            workoutScreen.classList.add('hidden');
-            completeScreen.classList.add('hidden');
-            loaderContainer.innerHTML = `
-                <div class="p-4 text-center">
-                    <p class="text-lg text-gold-300">Please sign in to your<br><span class="font-bold">wrestling.systems</span> account to use this app.</p>
-                    <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                        <a href="https://dev.wrestling.systems/login" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm font-medium text-black bg-gold-500 hover:bg-gold-600">Sign In</a>
-                        <a href="https://dev.wrestling.systems/register" class="w-full flex justify-center py-2.5 px-4 border border-gray-600 rounded-md font-medium text-white bg-gray-700 hover:bg-gray-600">Register</a>
-                    </div>
-                </div>`;
-        }
-        
         async function initFirebase() {
             const firebaseConfig = {
                 apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
@@ -445,15 +385,15 @@
                 startingRps = parseInt(repsInput.value);
                 currentRps = startingRps;
                 
-                exerciseStates = {};
+                exerciseDebt = {};
                 roundCompletionStates = {};
                 workoutTotals = {};
                 selectedAthletes.forEach(athlete => {
-                    exerciseStates[athlete.id] = {};
+                    exerciseDebt[athlete.id] = {};
                     roundCompletionStates[athlete.id] = {};
                     workoutTotals[athlete.id] = { completed: 0, missed: 0 };
                     workoutExercises.forEach(ex => {
-                        exerciseStates[athlete.id][ex] = startingRps;
+                        exerciseDebt[athlete.id][ex] = 0;
                         roundCompletionStates[athlete.id][ex] = false;
                     });
                 });
@@ -462,11 +402,11 @@
                 const newAthletes = selectedAthletes.filter(a => !existingAthleteIds.includes(a.id));
 
                 newAthletes.forEach(athlete => {
-                    exerciseStates[athlete.id] = {};
+                    exerciseDebt[athlete.id] = {};
                     roundCompletionStates[athlete.id] = {};
                     workoutTotals[athlete.id] = { completed: 0, missed: 0 };
                     workoutExercises.forEach(ex => {
-                        exerciseStates[athlete.id][ex] = currentRps; 
+                        exerciseDebt[athlete.id][ex] = 0;
                         roundCompletionStates[athlete.id][ex] = false;
                     });
                 });
@@ -534,9 +474,9 @@
             const cell = document.getElementById(`cell-${athleteId}-${exerciseName.replace(/\s+/g, '-')}`);
             if(!cell) return;
 
-            const repsLeft = exerciseStates[athleteId][exerciseName];
+            const debt = exerciseDebt[athleteId][exerciseName];
+            const repsLeft = currentRps + debt;
             const isDoneForRound = roundCompletionStates[athleteId][exerciseName];
-            const repsBehind = repsLeft - currentRps;
 
             let buttonHtml, statusHtml, buttonClasses;
 
@@ -545,39 +485,34 @@
                 statusHtml = `<div class="text-xs mt-1 text-gray-400">Done</div>`;
             } else {
                 buttonClasses = 'bg-gold-500 hover:bg-gold-600 text-black';
-                if (repsBehind > 3) buttonClasses = 'bg-red-600 hover:bg-red-500 text-white';
-                else if (repsBehind > 0) buttonClasses = 'bg-yellow-600 hover:bg-yellow-500 text-black';
+                if (debt > (currentRps * 2)) buttonClasses = 'bg-red-600 hover:bg-red-500 text-white';
+                else if (debt > 0) buttonClasses = 'bg-yellow-600 hover:bg-yellow-500 text-black';
 
                 buttonHtml = `<button data-athlete-id="${athleteId}" data-exercise-name="${exerciseName}" class="complete-exercise-btn w-full ${buttonClasses} font-bold py-2 px-4 rounded-md text-sm">Done</button>`;
                 
-                if (repsBehind > 0) statusHtml = `<div class="text-xs mt-1 text-yellow-400">${repsLeft} left</div>`;
+                if (debt > 0) statusHtml = `<div class="text-xs mt-1 text-yellow-400">${repsLeft} left</div>`;
                 else statusHtml = `<div class="text-xs mt-1 text-green-400">On Target</div>`;
             }
             cell.innerHTML = buttonHtml + statusHtml;
         }
 
         function markExerciseComplete(athleteId, exerciseName) {
-            const repsLeft = exerciseStates[athleteId][exerciseName];
-            if (repsLeft > currentRps) {
-                exerciseStates[athleteId][exerciseName]--;
-                workoutTotals[athleteId].completed++;
-            } else if (repsLeft === currentRps) {
-                roundCompletionStates[athleteId][exerciseName] = true;
-                workoutTotals[athleteId].completed += currentRps;
-                exerciseStates[athleteId][exerciseName] = 0; // Debt cleared for this exercise
-            }
+            const debt = exerciseDebt[athleteId][exerciseName];
+            const repsThisAction = currentRps + debt;
+
+            workoutTotals[athleteId].completed += repsThisAction;
+            exerciseDebt[athleteId][exerciseName] = 0;
+            roundCompletionStates[athleteId][exerciseName] = true;
+            
             updateGridCell(athleteId, exerciseName);
         }
 
         function completeRound() {
-            const nextReps = currentRps > 1 ? currentRps - 1 : 0;
             selectedAthletes.forEach(athlete => {
                 workoutExercises.forEach(ex => {
                     if (!roundCompletionStates[athlete.id][ex]) {
                         workoutTotals[athlete.id].missed += currentRps;
-                        if(nextReps > 0) exerciseStates[athlete.id][ex] += nextReps;
-                    } else {
-                        exerciseStates[athlete.id][ex] = nextReps;
+                        exerciseDebt[athlete.id][ex] += currentRps;
                     }
                     roundCompletionStates[athlete.id][ex] = false;
                 });
@@ -602,7 +537,8 @@
                         workoutTotals[athlete.id].missed += currentRps;
                     }
                     if (currentRps > 1) {
-                        workoutTotals[athlete.id].missed += (currentRps - 1) * currentRps / 2;
+                        const futureRoundsSum = (currentRps - 1) * currentRps / 2;
+                        workoutTotals[athlete.id].missed += futureRoundsSum;
                     }
                 });
             });
