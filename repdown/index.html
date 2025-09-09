@@ -148,8 +148,8 @@
             </div>
 
             <!-- Workout Screen -->
-            <div id="workout-screen" class="hidden">
-                 <button id="switch-athlete-btn" class="absolute top-6 left-6 text-sm text-gray-400 hover:text-gold-300">&larr; Switch Athlete</button>
+            <div id="workout-screen" class="hidden relative">
+                 <button id="switch-athlete-btn" class="absolute top-0 left-0 text-sm text-gray-400 hover:text-gold-300">&larr; Switch Athlete</button>
                 <div id="total-timer-container" class="mb-4 text-center pt-8">
                     <p class="text-gray-400 text-sm font-medium">Time Remaining for this Round</p>
                     <p id="total-timer" class="text-4xl font-bold text-gray-200">10:00</p>
@@ -323,6 +323,8 @@
                         loaderContainer.classList.remove('hidden');
                         athleteHubScreen.classList.add('hidden');
                         setupScreen.classList.add('hidden');
+                        workoutScreen.classList.add('hidden');
+                        completeScreen.classList.add('hidden');
                         loaderContainer.innerHTML = `
                              <div class="p-4 text-center">
                                 <p class="text-lg text-gold-300">
@@ -477,14 +479,401 @@
             }
         }
         
-        // ... The rest of the app logic (startWorkout, completeRound, etc.) should be here ...
-        // For brevity, I'll assume they are correct and focus on the UI flow logic.
         function showHubScreen() {
             selectedAthlete = null;
             setupScreen.classList.add('hidden');
             workoutScreen.classList.add('hidden');
             completeScreen.classList.add('hidden');
             athleteHubScreen.classList.remove('hidden');
+        }
+
+        // --- Core App Logic ---
+        function validateInputs() {
+            let isValid = true;
+            const reps = parseInt(repsInput.value);
+            if (isNaN(reps) || reps < 1 || reps > 100) {
+                repsError.classList.remove('hidden');
+                isValid = false;
+            } else {
+                repsError.classList.add('hidden');
+            }
+            const allCheckboxes = document.querySelectorAll('#exercise-selection input[type="checkbox"]');
+            selectedExercises = Array.from(allCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+            if (selectedExercises.length === 0) {
+                exerciseError.classList.remove('hidden');
+                isValid = false;
+            } else {
+                exerciseError.classList.add('hidden');
+            }
+            return isValid;
+        }
+
+        function startWorkout() {
+            if (!validateInputs()) return;
+            startingRps = parseInt(repsInput.value);
+            currentReps = startingRps;
+            totalRepsCompleted = 0;
+            missedRepsByExercise = {};
+            roundTimes = [];
+            totalRecommendedReps = sumOfN(recommendedReps) * selectedExercises.length;
+            exerciseStates = {};
+            selectedExercises.forEach(name => {
+                exerciseStates[name] = startingRps;
+                missedRepsByExercise[name] = 0;
+            });
+            updateRepDisplay();
+            buildExerciseTrackers();
+            startTotalTimer();
+            updateDoneButtonText();
+            setupScreen.classList.add('hidden');
+            workoutScreen.classList.remove('hidden');
+            completeScreen.classList.add('hidden');
+        }
+
+        function buildExerciseTrackers() {
+            dynamicExerciseList.innerHTML = '';
+            selectedExercises.forEach(exerciseName => {
+                const exerciseReps = exerciseStates[exerciseName];
+                const isOnTarget = exerciseReps === currentReps;
+                const repsBehind = exerciseReps - currentReps;
+                const item = document.createElement('div');
+                item.className = 'exercise-item text-left bg-gray-800 p-3 rounded-lg';
+                item.dataset.name = exerciseName;
+                item.dataset.completed = 'false';
+                let statusHTML = isOnTarget ? `<span class="text-green-400 font-semibold">On Target</span>` : `<span class="text-yellow-400 font-semibold">You're on ${exerciseReps}, catch up!</span>`;
+                let buttonClasses = '';
+                if (isOnTarget) buttonClasses = 'bg-gold-500 hover:bg-gold-600 text-black';
+                else if (repsBehind > 0 && repsBehind <= 3) buttonClasses = 'bg-yellow-600 hover:bg-yellow-500 text-black';
+                else if (repsBehind > 3) buttonClasses = 'bg-red-600 hover:bg-red-500 text-white';
+                item.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="exercise-name text-lg font-medium text-gray-300 block">${exerciseName}</span>
+                            <span class="exercise-status text-sm">${statusHTML}</span>
+                        </div>
+                        <button class="complete-exercise-btn ${buttonClasses} font-bold py-2 px-4 rounded-md transition-colors">Done</button>
+                    </div>`;
+                dynamicExerciseList.appendChild(item);
+                item.querySelector('.complete-exercise-btn').onclick = () => markExerciseComplete(item);
+            });
+        }
+        
+        function sumOfN(n) {
+            if (n <= 0) return 0;
+            return n * (n + 1) / 2;
+        }
+        
+        function updateSingleExerciseTracker(item) {
+            const exerciseName = item.dataset.name;
+            const exerciseReps = exerciseStates[exerciseName];
+            const isOnTarget = exerciseReps === currentReps;
+            const repsBehind = exerciseReps - currentReps;
+            item.querySelector('.exercise-status').innerHTML = isOnTarget ? `<span class="text-green-400 font-semibold">On Target</span>` : `<span class="text-yellow-400 font-semibold">You're on ${exerciseReps}, catch up!</span>`;
+            const button = item.querySelector('.complete-exercise-btn');
+            button.classList.remove('bg-gold-500', 'hover:bg-gold-600', 'text-black', 'bg-yellow-600', 'hover:bg-yellow-500', 'bg-red-600', 'hover:bg-red-500', 'text-white');
+            if (isOnTarget) button.classList.add('bg-gold-500', 'hover:bg-gold-600', 'text-black');
+            else if (repsBehind > 0 && repsBehind <= 3) button.classList.add('bg-yellow-600', 'hover:bg-yellow-500', 'text-black');
+            else if (repsBehind > 3) button.classList.add('bg-red-600', 'hover:bg-red-500', 'text-white');
+        }
+
+        function markExerciseComplete(item) {
+            const name = item.dataset.name;
+            const exerciseReps = exerciseStates[name];
+            if (exerciseReps > currentReps) {
+                exerciseStates[name]--;
+                totalRepsCompleted++;
+                updateSingleExerciseTracker(item);
+            } else if (exerciseReps === currentReps) {
+                item.dataset.completed = 'true';
+                const button = item.querySelector('.complete-exercise-btn');
+                button.disabled = true;
+                button.textContent = '✔';
+                button.classList.remove('bg-gold-500', 'hover:bg-gold-600', 'text-black', 'bg-yellow-600', 'hover:bg-yellow-500', 'bg-red-600', 'hover:bg-red-500', 'text-white');
+                button.classList.add('bg-green-600', 'text-white');
+            }
+        }
+
+        function completeRound() {
+            const roundEndTime = Date.now();
+            const timeTaken = (roundEndTime - roundStartTime) / 1000;
+            const exerciseItems = dynamicExerciseList.querySelectorAll('.exercise-item');
+            const allDone = Array.from(exerciseItems).every(item => item.dataset.completed === 'true');
+            const missedRepsInRound = {};
+            exerciseItems.forEach(item => {
+                if (item.dataset.completed !== 'true') missedRepsInRound[item.dataset.name] = exerciseStates[item.dataset.name];
+            });
+            roundTimes.push({ roundNumber: currentReps, timeTaken: timeTaken, status: allDone ? 'Completed' : 'Started Early', missedReps: missedRepsInRound });
+            exerciseItems.forEach(item => {
+                const name = item.dataset.name;
+                const isCompletedThisRound = item.dataset.completed === 'true';
+                const repsForThisExercise = exerciseStates[name];
+                if (isCompletedThisRound) {
+                    totalRepsCompleted += repsForThisExercise;
+                    exerciseStates[name] = currentReps - 1;
+                } else {
+                    missedRepsByExercise[name] += repsForThisExercise;
+                }
+            });
+            currentReps--;
+            if (currentReps <= 0) {
+                finishWorkout();
+                return;
+            }
+            updateRepDisplay();
+            buildExerciseTrackers();
+            startTotalTimer();
+            updateDoneButtonText();
+        }
+
+        function endWorkout() {
+            clearInterval(totalTimerInterval);
+            const roundEndTime = Date.now();
+            const timeTaken = (roundEndTime - roundStartTime) / 1000;
+            const exerciseItems = dynamicExerciseList.querySelectorAll('.exercise-item');
+            const missedRepsInRound = {};
+            exerciseItems.forEach(item => {
+                if (item.dataset.completed !== 'true') missedRepsInRound[item.dataset.name] = exerciseStates[item.dataset.name];
+            });
+            roundTimes.push({ roundNumber: currentReps, timeTaken: timeTaken, status: 'Ended Early', missedReps: missedRepsInRound });
+            exerciseItems.forEach(item => {
+                const name = item.dataset.name;
+                const isCompletedThisRound = item.dataset.completed === 'true';
+                if (!isCompletedThisRound) missedRepsByExercise[name] += exerciseStates[name];
+                else totalRepsCompleted += exerciseStates[name];
+            });
+            if (currentReps > 1) {
+                const repsInFutureRounds = sumOfN(currentReps - 1);
+                selectedExercises.forEach(name => {
+                    missedRepsByExercise[name] += repsInFutureRounds;
+                });
+            }
+            showIncompleteScreen();
+            saveWorkoutData('incomplete');
+        }
+
+        function displayRoundSummary() {
+            roundSummaryList.innerHTML = '';
+            if (roundTimes.length === 0) return;
+            roundTimes.forEach(round => {
+                const statusColor = round.status === 'Completed' ? 'text-green-400' : (round.status === 'Started Early' ? 'text-yellow-400' : 'text-red-500');
+                const summaryItem = document.createElement('div');
+                summaryItem.className = 'text-gray-300 py-2 border-b border-gray-700/50';
+                let missedRepsHTML = '';
+                const missedEntries = Object.entries(round.missedReps || {});
+                if (missedEntries.length > 0) {
+                    const missedContent = missedEntries.map(([exercise, reps]) => `<span>- Missed ${reps} ${exercise}</span>`).join('<br>');
+                    missedRepsHTML = `<div class="text-sm text-red-400 pl-4 pt-1">${missedContent}</div>`;
+                }
+                summaryItem.innerHTML = `<div class="flex justify-between items-center text-sm"><span>Round <span class="font-bold text-gold-300">${round.roundNumber}</span></span><span class="font-semibold">${formatRoundTime(timeTaken)}</span><span class="font-bold ${statusColor}">${round.status}</span></div>${missedRepsHTML}`;
+                roundSummaryList.appendChild(summaryItem);
+            });
+        }
+        
+        function formatRoundTime(seconds) {
+            if (seconds < 60) return `${Math.floor(seconds)}s`;
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}m ${remainingSeconds}s`;
+        }
+
+        function downloadCSV() {
+            if (roundTimes.length === 0) return;
+            let csvContent = "Round,Time Taken (seconds),Status\n";
+            roundTimes.forEach(round => {
+                csvContent += `${round.roundNumber},${round.timeTaken.toFixed(2)},"${round.status}"\n`;
+            });
+            csvContent += "\nMetric,Value\n";
+            const { finalCompleted, finalMissedByExercise, beastModeReps } = getFinalTotals();
+            csvContent += `Total Reps Completed,${finalCompleted}\n`;
+            for (const [exercise, count] of Object.entries(finalMissedByExercise)) {
+                if (count > 0) csvContent += `Missed ${exercise} Reps,${count}\n`;
+            }
+            if (beastModeReps > 0) csvContent += `Beast Mode Reps,${beastModeReps}\n`;
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                const today = new Date();
+                const dateString = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+                link.setAttribute("href", url);
+                link.setAttribute("download", `rep_down_summary_${dateString}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+        
+        function getFinalTotals() {
+            const finalCompleted = totalRepsCompleted + previousAttemptCompleted;
+            const finalMissedByExercise = { ...previousAttemptMissedByExercise };
+            Object.keys(missedRepsByExercise).forEach(ex => {
+                finalMissedByExercise[ex] = (finalMissedByExercise[ex] || 0) + missedRepsByExercise[ex];
+            });
+            const totalFinalMissed = Object.values(finalMissedByExercise).reduce((sum, count) => sum + count, 0);
+            const beastModeReps = finalCompleted - totalRecommendedReps;
+            return { finalCompleted, finalMissedByExercise, totalFinalMissed, beastModeReps };
+        }
+
+        function showIncompleteScreen() {
+            document.title = 'Rep Down';
+            const { finalCompleted, totalFinalMissed } = getFinalTotals();
+            document.getElementById('complete-title').textContent = "Workout Incomplete";
+            document.getElementById('total-reps-info').textContent = `Total Reps Completed: ${finalCompleted}`;
+            const totalMissedRepsInfo = document.getElementById('total-missed-reps-info');
+            if (totalFinalMissed > 0) {
+                totalMissedRepsInfo.textContent = `Total Reps Missed: ${totalFinalMissed}`;
+                totalMissedRepsInfo.classList.remove('hidden');
+            } else {
+                totalMissedRepsInfo.classList.add('hidden');
+            }
+            document.getElementById('beast-mode-info').classList.add('hidden');
+            restartBtn.classList.remove('hidden');
+            retryBtn.classList.remove('hidden');
+            downloadCsvBtn.classList.remove('hidden');
+            displayRoundSummary();
+            workoutScreen.classList.add('hidden');
+            completeScreen.classList.remove('hidden');
+        }
+
+        function retryWorkout() {
+            previousAttemptCompleted += totalRepsCompleted;
+            Object.keys(missedRepsByExercise).forEach(ex => {
+                previousAttemptMissedByExercise[ex] = (previousAttemptMissedByExercise[ex] || 0) + missedRepsByExercise[ex];
+            });
+            roundTimes = [];
+            resetAppForCurrentAthlete();
+        }
+
+        function finishWorkout() {
+            clearInterval(totalTimerInterval);
+            document.title = 'Rep Down';
+            const { finalCompleted, totalFinalMissed, beastModeReps } = getFinalTotals();
+            document.getElementById('complete-title').textContent = "Well Done!";
+            document.getElementById('total-reps-info').textContent = `Total Reps Completed: ${finalCompleted}`;
+            const totalMissedRepsInfo = document.getElementById('total-missed-reps-info');
+            if (totalFinalMissed > 0) {
+                totalMissedRepsInfo.textContent = `Total Reps Missed: ${totalFinalMissed}`;
+                totalMissedRepsInfo.classList.remove('hidden');
+            } else {
+                totalMissedRepsInfo.classList.add('hidden');
+            }
+            const beastModeInfo = document.getElementById('beast-mode-info');
+            if (beastModeReps > 0) {
+                beastModeInfo.textContent = `Beast Mode: ${beastModeReps} extra reps!`;
+                beastModeInfo.classList.remove('hidden');
+            } else {
+                beastModeInfo.classList.add('hidden');
+            }
+            restartBtn.classList.remove('hidden');
+            if (totalFinalMissed > 0) retryBtn.classList.remove('hidden');
+            else retryBtn.classList.add('hidden');
+            downloadCsvBtn.classList.remove('hidden');
+            displayRoundSummary();
+            workoutScreen.classList.add('hidden');
+            completeScreen.classList.remove('hidden');
+            saveWorkoutData('completed');
+        }
+
+        function resetAppForCurrentAthlete() {
+            clearInterval(totalTimerInterval);
+            document.title = 'Rep Down';
+            if (previousAttemptCompleted > 0) {
+                retryInfoDisplay.textContent = `${previousAttemptCompleted} reps from your last attempt will be added.`;
+                retryInfoDisplay.classList.remove('hidden');
+            } else {
+                retryInfoDisplay.classList.add('hidden');
+            }
+            downloadCsvBtn.classList.add('hidden');
+            updateChallengeInfo();
+            completeScreen.classList.add('hidden');
+            workoutScreen.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+            repsError.classList.add('hidden');
+            exerciseError.classList.add('hidden');
+            doneBtn.textContent = 'Start Next Round';
+            customExercisesAdded = 0;
+            document.querySelectorAll('.custom-exercise-item').forEach(el => el.remove());
+            addExerciseBtn.classList.remove('hidden');
+            addExerciseLimitMsg.classList.add('hidden');
+            newExerciseForm.classList.add('hidden');
+            newExerciseInput.value = '';
+        }
+
+        function updateRepDisplay() {
+            currentRpsDisplay.textContent = currentReps;
+        }
+
+        function updateDoneButtonText() {
+            doneBtn.textContent = currentReps === 1 ? "I'm Done!" : "Start Next Round";
+        }
+
+        function formatTime(seconds) {
+            const isNegative = seconds < 0;
+            if(isNegative) seconds = Math.abs(seconds);
+
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            const formattedSeconds = remainingSeconds < 10 ? '0' + remainingSeconds : remainingSeconds;
+            
+            return isNegative ? `+${minutes}:${formattedSeconds}` : `${minutes}:${formattedSeconds}`;
+        }
+
+        function startTotalTimer() {
+            clearInterval(totalTimerInterval);
+            roundStartTime = Date.now();
+            let timeLeft = 600; // 10 minutes
+            let isOvertime = false;
+            totalTimerDisplay.textContent = formatTime(timeLeft);
+            document.title = `${formatTime(timeLeft)} - Rep Down`;
+            const container = document.getElementById('total-timer-container');
+            const timerLabel = container.querySelector('p:first-child');
+            timerLabel.textContent = "Time Remaining for this Round";
+            timerLabel.classList.remove('text-red-500');
+            totalTimerDisplay.classList.remove('text-red-500');
+            totalTimerInterval = setInterval(() => {
+                timeLeft--;
+                const formattedTime = formatTime(timeLeft);
+                totalTimerDisplay.textContent = formattedTime;
+                document.title = `${formattedTime} - Rep Down`;
+
+                if (timeLeft < 0 && !isOvertime) {
+                    isOvertime = true;
+                    timerLabel.textContent = "Finish Your Reps!";
+                    timerLabel.classList.add('text-red-500');
+                    totalTimerDisplay.classList.add('text-red-500');
+                } 
+            }, 1000);
+        }
+
+        function handleAddNewExercise() {
+            const exerciseName = newExerciseInput.value.trim();
+            if (exerciseName === '') return; // Simple validation
+
+            const allCheckboxes = document.querySelectorAll('#exercise-selection input[type="checkbox"]');
+            const isDuplicate = Array.from(allCheckboxes).some(cb => cb.value.toLowerCase() === exerciseName.toLowerCase());
+            if (isDuplicate) {
+                alert("This exercise already exists.");
+                return;
+            }
+
+            const newId = `custom-${exerciseName.replace(/\s+/g, '-').toLowerCase()}`;
+            const newExerciseEl = document.createElement('div');
+            newExerciseEl.className = 'flex items-center custom-exercise-item';
+            newExerciseEl.innerHTML = `
+                <input id="${newId}" type="checkbox" checked value="${exerciseName}" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2">
+                <label for="${newId}" class="ml-2 text-base font-medium text-gray-300">${exerciseName}</label>
+            `;
+            exerciseSelection.appendChild(newExerciseEl);
+            customExercisesAdded++;
+            newExerciseInput.value = '';
+            newExerciseForm.classList.add('hidden');
+            if (customExercisesAdded >= 2) {
+                addExerciseBtn.classList.add('hidden');
+                addExerciseLimitMsg.classList.remove('hidden');
+            } else {
+                addExerciseBtn.classList.remove('hidden');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -498,11 +887,25 @@
             backToHubBtn.addEventListener('click', showHubScreen);
             switchAthleteBtn.addEventListener('click', showHubScreen);
             
-            // Other event listeners will be added back in the full code.
-        });
-        
-        // --- Full app logic needs to be re-inserted here ---
+            startBtn.addEventListener('click', startWorkout);
+            doneBtn.addEventListener('click', completeRound);
+            endBtn.addEventListener('click', endWorkout);
+            restartBtn.addEventListener('click', () => {
+                previousAttemptCompleted = 0;
+                previousAttemptMissedByExercise = {};
+                roundTimes = [];
+                resetAppForCurrentAthlete();
+            });
+            retryBtn.addEventListener('click', retryWorkout);
+            downloadCsvBtn.addEventListener('click', downloadCSV);
 
+            addExerciseBtn.addEventListener('click', () => {
+                addExerciseBtn.classList.add('hidden');
+                newExerciseForm.classList.remove('hidden');
+                newExerciseInput.focus();
+            });
+            saveExerciseBtn.addEventListener('click', handleAddNewExercise);
+        });
     </script>
 </body>
 </html>

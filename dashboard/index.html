@@ -90,7 +90,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp, setDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // DOM Elements
         const loaderContainer = document.getElementById('loader-container');
@@ -200,9 +200,10 @@
 
                 // 2. Add the athlete's ID to the parent's (user) document
                 const userRef = doc(db, "users", userId);
-                await updateDoc(userRef, {
+                // ** THE FIX IS HERE: Use setDoc with merge to create or update the user doc **
+                await setDoc(userRef, {
                     managedAthletes: arrayUnion(newAthleteRef.id)
-                });
+                }, { merge: true });
                 
                 athleteNameInput.value = '';
                 await fetchAndDisplayAthletes();
@@ -219,3 +220,4 @@
     </script>
 </body>
 </html>
+
