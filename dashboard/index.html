@@ -171,15 +171,17 @@
         async function fetchAndDisplayAthletes() {
             const userRef = doc(db, "users", userId);
             const userSnap = await getDoc(userRef);
+
+            // Clear the list before rendering to prevent duplicates
+            athleteListDiv.innerHTML = ''; 
+
             if (!userSnap.exists() || !userSnap.data().managedAthletes || userSnap.data().managedAthletes.length === 0) {
-                athleteListDiv.innerHTML = '';
                 athleteListDiv.appendChild(noAthletesMsg);
                 noAthletesMsg.classList.remove('hidden');
                 return;
             }
             
             noAthletesMsg.classList.add('hidden');
-            athleteListDiv.innerHTML = ''; 
             const athleteIds = userSnap.data().managedAthletes;
 
             for (const athleteId of athleteIds) {
@@ -335,4 +337,5 @@
     </script>
 </body>
 </html>
+
 
