@@ -113,22 +113,25 @@
                 <div id="setup-athlete-list" class="text-center text-gray-300 mb-6"></div>
                 
                 <div class="bg-black/30 p-6 rounded-xl">
+                     <p id="workout-in-progress-msg" class="text-center text-cyan-400 mb-4 hidden">A workout is in progress. New athletes will join the current session.</p>
                     <div class="mb-5">
                         <label class="block text-sm font-medium text-gray-300 mb-3 text-center">Select Exercises (Max 5)</label>
-                        <div id="exercise-selection" class="space-y-2 text-left w-fit mx-auto">
-                            <div class="flex items-center">
-                                <input id="pushups-check" type="checkbox" checked value="Pushups" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2 exercise-check">
-                                <label for="pushups-check" class="ml-2 text-base font-medium text-gray-300">Pushups</label>
+                        <fieldset id="exercise-fieldset">
+                            <div id="exercise-selection" class="space-y-2 text-left w-fit mx-auto">
+                                <div class="flex items-center">
+                                    <input id="pushups-check" type="checkbox" checked value="Pushups" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2 exercise-check">
+                                    <label for="pushups-check" class="ml-2 text-base font-medium text-gray-300">Pushups</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input id="squats-check" type="checkbox" checked value="Squats" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2 exercise-check">
+                                    <label for="squats-check" class="ml-2 text-base font-medium text-gray-300">Squats</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input id="vups-check" type="checkbox" checked value="V-ups" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2 exercise-check">
+                                    <label for="vups-check" class="ml-2 text-base font-medium text-gray-300">V-ups</label>
+                                </div>
                             </div>
-                            <div class="flex items-center">
-                                <input id="squats-check" type="checkbox" checked value="Squats" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2 exercise-check">
-                                <label for="squats-check" class="ml-2 text-base font-medium text-gray-300">Squats</label>
-                            </div>
-                            <div class="flex items-center">
-                                <input id="vups-check" type="checkbox" checked value="V-ups" class="w-4 h-4 text-gold-500 bg-gray-700 border-gray-600 rounded focus:ring-gold-500 focus:ring-2 exercise-check">
-                                <label for="vups-check" class="ml-2 text-base font-medium text-gray-300">V-ups</label>
-                            </div>
-                        </div>
+                        </fieldset>
                         <div id="add-exercise-container" class="mt-3 text-center">
                             <button id="add-exercise-btn" class="text-cyan-400 hover:text-cyan-300 text-sm font-semibold">+ Add Exercise</button>
                             <div id="new-exercise-form" class="hidden mt-2 flex gap-2 w-full max-w-xs mx-auto">
@@ -217,6 +220,8 @@
         
         const setupAthleteList = document.getElementById('setup-athlete-list');
         const backToHubFromSetupBtn = document.getElementById('back-to-hub-from-setup-btn');
+        const workoutInProgressMsg = document.getElementById('workout-in-progress-msg');
+        const exerciseFieldset = document.getElementById('exercise-fieldset');
         const exerciseSelection = document.getElementById('exercise-selection');
         const addExerciseBtn = document.getElementById('add-exercise-btn');
         const newExerciseForm = document.getElementById('new-exercise-form');
@@ -246,6 +251,7 @@
         let workoutExercises = [];
         let totalTimerInterval;
         let roundStartTime;
+        let isWorkoutInProgress = false;
 
         let exerciseStates = {};
         let roundCompletionStates = {};
@@ -263,84 +269,21 @@
             appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
             measurementId: "G-E52GDENT1E"
         };
-        
-        function getProviderIcon(providerId) {
-             switch (providerId) {
-                case 'google.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
-                case 'facebook.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
-                case 'microsoft.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
-                case 'password':
-                default:
-                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                await populateUserInfo(user);
+                await fetchAndDisplayAthletesForSelection();
+                loaderContainer.classList.add('hidden');
+                showHubScreen(); // Always start at the hub
+            } else {
+                showLoginPrompt();
             }
-        }
-        
-        function startTotalTimer() {
-            clearInterval(totalTimerInterval);
-            roundStartTime = Date.now();
-            let timeLeft = 600; // 10 minutes
-            let isOvertime = false;
-            totalTimerDisplay.textContent = formatTime(timeLeft);
-            
-            totalTimerInterval = setInterval(() => {
-                timeLeft--;
-                const formattedTime = formatTime(timeLeft);
-                totalTimerDisplay.textContent = formattedTime;
-
-                if (timeLeft < 0 && !isOvertime) {
-                    isOvertime = true;
-                    totalTimerDisplay.parentElement.querySelector('p').textContent = "Finish Your Reps!";
-                    totalTimerDisplay.parentElement.querySelector('p').classList.add('text-red-500');
-                    totalTimerDisplay.classList.add('text-red-500');
-                } 
-            }, 1000);
-        }
-
-        function formatTime(seconds) {
-            const isNegative = seconds < 0;
-            if(isNegative) seconds = Math.abs(seconds);
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            const formattedSeconds = remainingSeconds < 10 ? '0' + remainingSeconds : remainingSeconds;
-            return isNegative ? `+${minutes}:${formattedSeconds}` : `${minutes}:${formattedSeconds}`;
-        }
-        
-        function showLoginPrompt() {
-            loaderContainer.classList.remove('hidden');
-            athleteHubScreen.classList.add('hidden');
-            setupScreen.classList.add('hidden');
-            workoutScreen.classList.add('hidden');
-            completeScreen.classList.add('hidden');
-            loaderContainer.innerHTML = `
-                <div class="p-4 text-center">
-                    <p class="text-lg text-gold-300">Please sign in to your<br><span class="font-bold">wrestling.systems</span> account to use this app.</p>
-                    <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                        <a href="https://dev.wrestling.systems/login" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm font-medium text-black bg-gold-500 hover:bg-gold-600">Sign In</a>
-                        <a href="https://dev.wrestling.systems/register" class="w-full flex justify-center py-2.5 px-4 border border-gray-600 rounded-md font-medium text-white bg-gray-700 hover:bg-gray-600">Register</a>
-                    </div>
-                </div>`;
-        }
-
-        async function initFirebase() {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    await populateUserInfo(user);
-                    await fetchAndDisplayAthletesForSelection();
-                    loaderContainer.classList.add('hidden');
-                    athleteHubScreen.classList.remove('hidden');
-                } else {
-                    showLoginPrompt();
-                }
-            });
-        }
+        });
 
         async function populateUserInfo(user) {
             const userRef = doc(db, "users", user.uid);
@@ -398,9 +341,9 @@
 
         function updateSelectionUI() {
             const selectedElements = document.querySelectorAll('.athlete-selectable[data-selected="true"]');
-            selectedAthletes = Array.from(selectedElements).map(el => ({ id: el.dataset.athleteId, name: el.dataset.athleteName }));
-            selectionCount.textContent = `Selected ${selectedAthletes.length} of 5 athletes.`;
-            if (selectedAthletes.length > 0) {
+            const currentSelection = Array.from(selectedElements).map(el => ({ id: el.dataset.athleteId, name: el.dataset.athleteName }));
+            selectionCount.textContent = `Selected ${currentSelection.length} of 5 athletes.`;
+            if (currentSelection.length > 0) {
                 letsGoBtn.classList.remove('hidden');
                 letsGoBtn.disabled = false;
             } else {
@@ -410,36 +353,71 @@
         }
         
         function showSetupScreen() {
+            const selectedElements = document.querySelectorAll('.athlete-selectable[data-selected="true"]');
+            selectedAthletes = Array.from(selectedElements).map(el => ({ id: el.dataset.athleteId, name: el.dataset.athleteName }));
+            
             athleteHubScreen.classList.add('hidden');
             setupScreen.classList.remove('hidden');
             const athleteNames = selectedAthletes.map(a => a.name).join(', ');
             setupAthleteList.textContent = `Workout for: ${athleteNames}`;
+
+            if (isWorkoutInProgress) {
+                workoutInProgressMsg.classList.remove('hidden');
+                exerciseFieldset.disabled = true;
+                repsInput.disabled = true;
+                addExerciseBtn.classList.add('hidden');
+            } else {
+                workoutInProgressMsg.classList.add('hidden');
+                exerciseFieldset.disabled = false;
+                repsInput.disabled = false;
+                addExerciseBtn.classList.remove('hidden');
+            }
             checkExerciseCount();
         }
 
         function startWorkout() {
             if(!validateSetup()) return;
-
-            startingRps = parseInt(repsInput.value);
-            currentRps = startingRps;
             
-            exerciseStates = {};
-            roundCompletionStates = {};
-            workoutTotals = {};
-            selectedAthletes.forEach(athlete => {
-                exerciseStates[athlete.id] = {};
-                roundCompletionStates[athlete.id] = {};
-                workoutTotals[athlete.id] = { completed: 0, missed: 0 };
-                workoutExercises.forEach(ex => {
-                    exerciseStates[athlete.id][ex] = startingRps;
-                    roundCompletionStates[athlete.id][ex] = false;
+            if (!isWorkoutInProgress) {
+                // This is a brand new workout
+                isWorkoutInProgress = true;
+                startingRps = parseInt(repsInput.value);
+                currentRps = startingRps;
+                
+                // Reset and initialize states for all selected athletes
+                exerciseStates = {};
+                roundCompletionStates = {};
+                workoutTotals = {};
+                selectedAthletes.forEach(athlete => {
+                    exerciseStates[athlete.id] = {};
+                    roundCompletionStates[athlete.id] = {};
+                    workoutTotals[athlete.id] = { completed: 0, missed: 0 };
+                    workoutExercises.forEach(ex => {
+                        exerciseStates[athlete.id][ex] = startingRps;
+                        roundCompletionStates[athlete.id][ex] = false;
+                    });
                 });
-            });
+            } else {
+                // Adding athletes to an existing workout
+                const existingAthleteIds = Object.keys(workoutTotals);
+                const newAthletes = selectedAthletes.filter(a => !existingAthleteIds.includes(a.id));
+
+                newAthletes.forEach(athlete => {
+                    exerciseStates[athlete.id] = {};
+                    roundCompletionStates[athlete.id] = {};
+                    workoutTotals[athlete.id] = { completed: 0, missed: 0 }; // Start fresh
+                    workoutExercises.forEach(ex => {
+                        // They join at the CURRENT round's rep count
+                        exerciseStates[athlete.id][ex] = currentRps; 
+                        roundCompletionStates[athlete.id][ex] = false;
+                    });
+                });
+            }
 
             currentRpsDisplay.textContent = currentRps;
             updateDoneButtonText();
             buildExerciseGrid();
-            startTotalTimer();
+            if (!totalTimerInterval) startTotalTimer();
             
             setupScreen.classList.add('hidden');
             workoutScreen.classList.remove('hidden');
@@ -447,20 +425,21 @@
 
         function validateSetup() {
             let isValid = true;
-            const reps = parseInt(repsInput.value);
-            if (isNaN(reps) || reps < 1 || reps > 100) {
-                repsError.textContent = 'Please enter a number between 1 and 100.';
-                isValid = false;
-            } else { repsError.textContent = ''; }
+            if (!isWorkoutInProgress) { // Only validate if it's a new workout
+                const reps = parseInt(repsInput.value);
+                if (isNaN(reps) || reps < 1 || reps > 100) {
+                    repsError.textContent = 'Please enter a number between 1 and 100.';
+                    isValid = false;
+                } else { repsError.textContent = ''; }
 
-            const allCheckboxes = document.querySelectorAll('#exercise-selection input[type="checkbox"]');
-            workoutExercises = Array.from(allCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-            
-            if (workoutExercises.length === 0) {
-                exerciseError.textContent = 'Please select at least one exercise.';
-                isValid = false;
-            } else { exerciseError.textContent = ''; }
-
+                const allCheckboxes = document.querySelectorAll('#exercise-selection input[type="checkbox"]');
+                workoutExercises = Array.from(allCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                
+                if (workoutExercises.length === 0) {
+                    exerciseError.textContent = 'Please select at least one exercise.';
+                    isValid = false;
+                } else { exerciseError.textContent = ''; }
+            }
             return isValid;
         }
 
@@ -527,24 +506,28 @@
             } else if (repsLeft === currentRps) {
                 roundCompletionStates[athleteId][exerciseName] = true;
                 workoutTotals[athleteId].completed += currentRps;
+                exerciseStates[athleteId][exerciseName] = 0; // Debt cleared for this exercise
             }
             updateGridCell(athleteId, exerciseName);
         }
 
         function completeRound() {
+            const nextReps = currentRps > 1 ? currentRps - 1 : 0;
             selectedAthletes.forEach(athlete => {
                 workoutExercises.forEach(ex => {
                     if (!roundCompletionStates[athlete.id][ex]) {
-                        workoutTotals[athlete.id].missed += exerciseStates[athlete.id][ex];
+                        workoutTotals[athlete.id].missed += currentRps;
+                        if(nextReps > 0) exerciseStates[athlete.id][ex] += nextReps;
+                    } else {
+                        exerciseStates[athlete.id][ex] = nextReps;
                     }
-                    exerciseStates[athlete.id][ex] = currentRps - 1;
                     roundCompletionStates[athlete.id][ex] = false;
                 });
             });
 
             currentRps--;
             if (currentRps <= 0) {
-                finishWorkout(true); // true = completed
+                finishWorkout(true); // completed
                 return;
             }
             
@@ -558,18 +541,21 @@
             selectedAthletes.forEach(athlete => {
                 workoutExercises.forEach(ex => {
                     if (!roundCompletionStates[athlete.id][ex]) {
-                        workoutTotals[athlete.id].missed += exerciseStates[athlete.id][ex];
+                        workoutTotals[athlete.id].missed += currentRps;
                     }
                     if (currentRps > 1) {
                         workoutTotals[athlete.id].missed += (currentRps - 1) * currentRps / 2;
                     }
                 });
             });
-            finishWorkout(false); // false = incomplete
+            finishWorkout(false); // incomplete
         }
 
         function finishWorkout(isComplete) {
             clearInterval(totalTimerInterval);
+            totalTimerInterval = null;
+            isWorkoutInProgress = false;
+            
             completeTitle.textContent = isComplete ? "Workout Complete!" : "Workout Ended";
             completionSummaryContainer.innerHTML = '';
             
@@ -613,8 +599,18 @@
             workoutScreen.classList.add('hidden');
             completeScreen.classList.add('hidden');
             athleteHubScreen.classList.remove('hidden');
-            // Reset selections
-            document.querySelectorAll('.athlete-selectable').forEach(el => el.dataset.selected = 'false');
+            
+            if (isWorkoutInProgress) {
+                 // Pre-select athletes from the ongoing workout
+                const athleteElements = document.querySelectorAll('.athlete-selectable');
+                const activeIds = selectedAthletes.map(a => a.id);
+                athleteElements.forEach(el => {
+                    el.dataset.selected = activeIds.includes(el.dataset.athleteId) ? 'true' : 'false';
+                });
+            } else {
+                 // Reset selections for a new workout
+                document.querySelectorAll('.athlete-selectable').forEach(el => el.dataset.selected = 'false');
+            }
             updateSelectionUI();
         }
         

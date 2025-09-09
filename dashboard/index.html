@@ -14,14 +14,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Gold Color */
         .bg-gold-500 { background-color: #D4AF37; }
         .hover\:bg-gold-600:hover { background-color: #C09B2D; }
         .text-gold-300 { color: #E6C75E; }
+        .border-gold-500 { border-color: #D4AF37; }
         .focus\:ring-gold-500:focus { --tw-ring-color: #D4AF37; }
+        .focus\:border-gold-500:focus { border-color: #D4AF37; }
+        
         #loader {
-            border: 5px solid #4b5563;
-            border-top: 5px solid #D4AF37;
+            border: 5px solid #4b5563; /* gray-600 */
+            border-top: 5px solid #D4AF37; /* gold-500 */
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -37,52 +43,66 @@
     
     <!-- User Status Display -->
     <div id="user-status" class="absolute top-4 right-4 text-right hidden group z-10">
-        <!-- User info will be dynamically populated -->
+        <div class="cursor-pointer">
+            <p class="text-gray-400 text-sm">Signed in as</p>
+            <p id="user-display-name" class="font-semibold text-white"></p>
+        </div>
+        <div class="absolute top-full right-0 mt-1 w-max bg-gray-800 rounded-md shadow-lg border border-gray-700 hidden group-hover:block transition-all text-left p-3 z-20">
+            <div class="flex items-center gap-2 border-b border-gray-600 pb-2 mb-2">
+                <span id="provider-icon-container" class="w-5 h-5"></span>
+                <span id="user-email-display" class="text-gray-300 text-sm"></span>
+            </div>
+            <button id="signout-btn" class="w-full text-left text-red-400 font-semibold hover:text-red-300">Sign Out</button>
+        </div>
     </div>
 
     <!-- Main Container -->
-    <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-black to-gray-900 p-4">
+    <div class="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-black to-gray-900 p-4">
 
-        <div class="w-full max-w-lg mx-auto text-center pt-12">
+        <div class="w-full max-w-2xl mx-auto text-center pt-12">
+            <!-- Logo/Header -->
             <a href="https://dev.wrestling.systems"><img src="https://assets.wrestling.systems/logo-gemini2.png" alt="Wrestling.Systems Logo" class="w-48 mx-auto mb-6"></a>
         </div>
 
-        <div id="app-container" class="w-full max-w-lg mx-auto bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700 mt-8">
+        <div id="app-container" class="w-full max-w-2xl mx-auto bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700 mt-8">
             
             <div id="loader-container" class="flex flex-col items-center justify-center min-h-[300px]">
                 <div id="loader"></div>
                 <p class="mt-4 text-gold-300">Loading Dashboard...</p>
             </div>
-
-            <!-- Dashboard Content -->
+            
             <div id="dashboard-content" class="hidden">
                 <h1 class="text-3xl sm:text-4xl font-bold text-white text-center mb-6">Athlete Dashboard</h1>
-                
-                <div class="mb-6">
-                    <h2 class="text-xl font-semibold text-gold-300 mb-3">Your Athletes</h2>
-                    <div id="athlete-list" class="space-y-3">
-                        <p id="no-athletes-msg" class="text-gray-400 text-center py-4 bg-black/20 rounded-md">No athletes found. Add one below to get started!</p>
+
+                <!-- Your Athletes Section -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gold-300 mb-4">Your Athletes</h2>
+                    <div id="athlete-list" class="space-y-4">
+                        <p id="no-athletes-msg" class="text-gray-400 text-center py-4 bg-gray-900/50 rounded-lg">No athletes found. Add one below to get started!</p>
                     </div>
                 </div>
 
+                <!-- Add a New Athlete Section -->
                 <div>
-                    <h2 class="text-xl font-semibold text-gold-300 mb-3">Add a New Athlete</h2>
-                    <div id="add-athlete-form" class="p-4 bg-black/30 rounded-lg">
+                    <h2 class="text-2xl font-semibold text-gold-300 mb-4">Add a New Athlete</h2>
+                    <div class="p-4 bg-black/30 rounded-lg">
                         <label for="athlete-name-input" class="block text-sm font-medium text-gray-300 mb-2">Athlete's First Name</label>
                         <div class="flex gap-3">
-                            <input type="text" id="athlete-name-input" placeholder="e.g., Jimmy" class="flex-grow bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
-                            <button id="save-athlete-btn" class="bg-gold-500 hover:bg-gold-600 text-white font-bold py-2 px-4 rounded-md">Save</button>
+                            <input type="text" id="athlete-name-input" placeholder="e.g., Maddox" class="flex-grow bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                            <button id="save-athlete-btn" class="bg-gold-500 hover:bg-gold-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500">Save</button>
                         </div>
                          <p id="add-athlete-error" class="text-red-400 text-sm mt-2 text-center h-5"></p>
                     </div>
                 </div>
-                 <a href="https://dev.wrestling.systems/repdown" class="block w-full text-center mt-8 py-3 px-4 border border-transparent rounded-md shadow-sm font-medium text-black bg-gray-300 hover:bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
+
+                <a href="https://dev.wrestling.systems/repdown" class="mt-8 w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm font-medium text-black bg-gold-500 hover:bg-gold-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-500 focus:ring-offset-gray-900 transition-all duration-300">
                     Go to Rep Down Challenge
                 </a>
             </div>
         </div>
 
-        <footer class="text-center text-gray-500 mt-12 pb-8">
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 mt-12 pb-8 space-y-2">
              <p class="text-sm">&copy; 2025 Wrestling.Systems. All Rights Reserved.</p>
         </footer>
     </div>
@@ -90,12 +110,16 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp, setDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, collection, updateDoc, arrayUnion, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // DOM Elements
         const loaderContainer = document.getElementById('loader-container');
         const dashboardContent = document.getElementById('dashboard-content');
         const userStatusDiv = document.getElementById('user-status');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const providerIconContainer = document.getElementById('provider-icon-container');
+        const signOutBtn = document.getElementById('signout-btn');
         const athleteListDiv = document.getElementById('athlete-list');
         const noAthletesMsg = document.getElementById('no-athletes-msg');
         const athleteNameInput = document.getElementById('athlete-name-input');
@@ -132,23 +156,16 @@
 
         async function populateUserInfo(user) {
             const userRef = doc(db, "users", user.uid);
-            let userName = user.email;
             try {
                 const docSnap = await getDoc(userRef);
                 if (docSnap.exists() && docSnap.data().firstName) {
-                    userName = `Hello, ${docSnap.data().firstName}`;
-                }
+                    userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
+                } else { userDisplayName.textContent = user.displayName || user.email; }
+                const providerId = user.providerData[0]?.providerId || 'password';
+                providerIconContainer.innerHTML = getProviderIcon(providerId);
+                userEmailDisplay.textContent = user.email;
+                userStatusDiv.classList.remove('hidden');
             } catch (error) { console.error("Error fetching user data:", error); }
-
-            userStatusDiv.innerHTML = `
-                <div class="cursor-pointer">
-                    <p id="user-display-name" class="font-semibold text-white">${userName}</p>
-                </div>
-                <div class="absolute top-full right-0 mt-1 w-max bg-gray-800 rounded-md shadow-lg border border-gray-700 hidden group-hover:block transition-all text-left p-3 z-20">
-                    <button id="signout-btn" class="w-full text-left text-red-400 font-semibold hover:text-red-300">Sign Out</button>
-                </div>`;
-            userStatusDiv.classList.remove('hidden');
-            document.getElementById('signout-btn').addEventListener('click', () => signOut(auth));
         }
 
         async function fetchAndDisplayAthletes() {
@@ -162,7 +179,7 @@
             }
             
             noAthletesMsg.classList.add('hidden');
-            athleteListDiv.innerHTML = ''; // Clear previous list
+            athleteListDiv.innerHTML = ''; 
             const athleteIds = userSnap.data().managedAthletes;
 
             for (const athleteId of athleteIds) {
@@ -170,27 +187,73 @@
                 const athleteSnap = await getDoc(athleteRef);
                 if (athleteSnap.exists()) {
                     const athleteData = athleteSnap.data();
-                    const athleteEl = document.createElement('div');
-                    athleteEl.className = 'bg-gray-700/50 p-3 rounded-md flex items-center justify-between';
-                    athleteEl.innerHTML = `<p class="font-medium text-gray-200">${athleteData.firstName}</p>`;
-                    athleteListDiv.appendChild(athleteEl);
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-700/50 rounded-lg transition-all';
+                    card.innerHTML = `
+                        <button class="w-full text-left font-semibold text-lg p-4 flex justify-between items-center" data-athlete-id="${athleteId}">
+                            <span>${athleteData.firstName}</span>
+                            <svg class="w-5 h-5 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        <div class="workout-history hidden p-4 border-t border-gray-600">
+                            <p class="text-center text-gray-400">Loading workouts...</p>
+                        </div>
+                    `;
+                    athleteListDiv.appendChild(card);
                 }
             }
         }
+        
+        async function fetchWorkoutHistory(athleteId, container) {
+            const workoutsRef = collection(db, `athletes/${athleteId}/workouts`);
+            const q = query(workoutsRef, orderBy("createdAt", "desc"), limit(10));
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    container.innerHTML = '<p class="text-center text-gray-400">No workouts recorded yet.</p>';
+                    return;
+                }
 
-        saveAthleteBtn.addEventListener('click', async () => {
+                let historyHtml = '';
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.createdAt.toDate().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                    const statusClass = data.status === 'completed' ? 'text-green-400' : 'text-yellow-400';
+                    const statusText = data.status === 'completed' ? 'Completed' : 'Incomplete';
+                    
+                    historyHtml += `
+                        <div class="bg-black/30 p-3 rounded-md mb-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <p class="font-bold text-gold-300">${date}</p>
+                                <p class="text-sm font-semibold ${statusClass}">${statusText}</p>
+                            </div>
+                            <p class="text-sm text-gray-300">Exercises: <span class="font-medium">${data.exercises.join(', ')}</span></p>
+                            <div class="flex justify-between text-sm mt-1">
+                                <p>Completed Reps: <span class="font-semibold text-white">${data.totalRepsCompleted}</span></p>
+                                <p>Missed Reps: <span class="font-semibold text-red-400">${data.totalRepsMissed}</span></p>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = historyHtml;
+
+            } catch(error) {
+                console.error("Error fetching workout history:", error);
+                container.innerHTML = '<p class="text-center text-red-400">Could not load workout history.</p>';
+            }
+        }
+
+        async function handleAddAthlete() {
             const name = athleteNameInput.value.trim();
             if (!name) {
                 addAthleteError.textContent = "Please enter a name.";
-                addAthleteError.classList.remove('hidden');
                 return;
             }
-            addAthleteError.classList.add('hidden');
             saveAthleteBtn.disabled = true;
-            saveAthleteBtn.textContent = 'Saving...';
+            addAthleteError.textContent = '';
 
             try {
-                // 1. Create the new athlete document
+                // Step 1: Create the new athlete document
                 const newAthleteRef = await addDoc(collection(db, "athletes"), {
                     firstName: name,
                     parentId: userId,
@@ -198,24 +261,76 @@
                     associatedAuthId: null
                 });
 
-                // 2. Add the athlete's ID to the parent's (user) document
+                // Step 2: Update the parent's user document
                 const userRef = doc(db, "users", userId);
-                // ** THE FIX IS HERE: Use setDoc with merge to create or update the user doc **
                 await setDoc(userRef, {
                     managedAthletes: arrayUnion(newAthleteRef.id)
                 }, { merge: true });
-                
+
                 athleteNameInput.value = '';
-                await fetchAndDisplayAthletes();
+                await fetchAndDisplayAthletes(); // Refresh the list
 
             } catch (error) {
                 console.error("Error adding athlete:", error);
                 addAthleteError.textContent = "Could not save athlete. Please try again.";
-                addAthleteError.classList.remove('hidden');
             } finally {
                 saveAthleteBtn.disabled = false;
-                saveAthleteBtn.textContent = 'Save';
             }
+        }
+
+        function getProviderIcon(providerId) {
+             switch (providerId) {
+                case 'google.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
+                case 'facebook.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
+                case 'microsoft.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
+                case 'password':
+                default:
+                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    await populateUserInfo(user);
+                    await fetchAndDisplayAthletes();
+                    loaderContainer.classList.add('hidden');
+                    dashboardContent.classList.remove('hidden');
+                } else {
+                    window.location.href = 'https://dev.wrestling.systems/login';
+                }
+            });
+
+            signOutBtn.addEventListener('click', () => signOut(auth));
+            saveAthleteBtn.addEventListener('click', handleAddAthlete);
+            
+            // Event delegation for toggling workout history
+            athleteListDiv.addEventListener('click', (e) => {
+                const button = e.target.closest('button[data-athlete-id]');
+                if (!button) return;
+
+                const historyDiv = button.nextElementSibling;
+                const icon = button.querySelector('svg');
+                const athleteId = button.dataset.athleteId;
+
+                const isHidden = historyDiv.classList.contains('hidden');
+                if (isHidden) {
+                    historyDiv.classList.remove('hidden');
+                    icon.classList.add('rotate-180');
+                    if (historyDiv.dataset.loaded !== 'true') {
+                         fetchWorkoutHistory(athleteId, historyDiv);
+                         historyDiv.dataset.loaded = 'true';
+                    }
+                } else {
+                    historyDiv.classList.add('hidden');
+                    icon.classList.remove('rotate-180');
+                }
+            });
         });
     </script>
 </body>
