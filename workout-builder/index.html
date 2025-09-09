@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Builder - Wrestling.Systems</title>
+
+    <!-- Favicon Links -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://assets.wrestling.systems/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://assets.wrestling.systems/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://assets.wrestling.systems/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://assets.wrestling.systems/favicon.ico">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Gold Color */
+        .bg-gold-500 { background-color: #D4AF37; }
+        .hover\:bg-gold-600:hover { background-color: #C09B2D; }
+        .text-gold-300 { color: #E6C75E; }
+        .border-gold-500 { border-color: #D4AF37; }
+        .focus\:ring-gold-500:focus { --tw-ring-color: #D4AF37; }
+        .focus\:border-gold-500:focus { border-color: #D4AF37; }
+        
+        #loader {
+            border: 5px solid #4b5563;
+            border-top: 5px solid #D4AF37;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .exercise-item {
+            transition: all 0.2s ease;
+        }
+        .exercise-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-black text-gray-200 antialiased">
+    
+    <!-- User Status Display -->
+    <div id="user-status" class="absolute top-4 right-4 text-right hidden group z-10">
+        <div class="cursor-pointer">
+            <p class="text-gray-400 text-sm">Signed in as</p>
+            <p id="user-display-name" class="font-semibold text-white"></p>
+        </div>
+        <div class="absolute top-full right-0 mt-1 w-max bg-gray-800 rounded-md shadow-lg border border-gray-700 hidden group-hover:block transition-all text-left p-3 z-20">
+            <div class="flex items-center gap-2 border-b border-gray-600 pb-2 mb-2">
+                <span id="provider-icon-container" class="w-5 h-5"></span>
+                <span id="user-email-display" class="text-gray-300 text-sm"></span>
+            </div>
+            <button id="signout-btn" class="w-full text-left text-red-400 font-semibold hover:text-red-300">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-black to-gray-900 p-4">
+
+        <div class="w-full max-w-6xl mx-auto text-center pt-12">
+            <!-- Logo/Header -->
+            <a href="https://dev.wrestling.systems"><img src="https://assets.wrestling.systems/logo-gemini2.png" alt="Wrestling.Systems Logo" class="w-48 mx-auto mb-6"></a>
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">Workout Builder</h1>
+            <p class="text-gray-400 mb-8">Create custom workout templates for your athletes</p>
+        </div>
+
+        <div id="app-container" class="w-full max-w-6xl mx-auto">
+            
+            <div id="loader-container" class="flex flex-col items-center justify-center min-h-[300px]">
+                <div id="loader"></div>
+                <p class="mt-4 text-gold-300">Loading Workout Builder...</p>
+            </div>
+            
+            <div id="builder-content" class="hidden">
+                <!-- Navigation Tabs -->
+                <div class="flex flex-wrap justify-center mb-8 bg-gray-800/50 rounded-lg p-2">
+                    <button id="tab-categories" class="tab-btn active px-4 py-2 rounded-md mx-1 mb-2 sm:mb-0 font-medium transition-all">
+                        Categories
+                    </button>
+                    <button id="tab-programs" class="tab-btn px-4 py-2 rounded-md mx-1 mb-2 sm:mb-0 font-medium transition-all">
+                        Programs
+                    </button>
+                    <button id="tab-workouts" class="tab-btn px-4 py-2 rounded-md mx-1 mb-2 sm:mb-0 font-medium transition-all">
+                        Workouts
+                    </button>
+                    <button id="tab-templates" class="tab-btn px-4 py-2 rounded-md mx-1 mb-2 sm:mb-0 font-medium transition-all">
+                        Templates
+                    </button>
+                </div>
+
+                <!-- Categories Section -->
+                <div id="categories-section" class="section active">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Categories List -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+                            <h2 class="text-2xl font-semibold text-gold-300 mb-4">Workout Categories</h2>
+                            <div id="categories-list" class="space-y-3 mb-4">
+                                <p class="text-gray-400 text-center py-4">Loading categories...</p>
+                            </div>
+                        </div>
+
+                        <!-- Add Category Form -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+                            <h3 class="text-xl font-semibold text-white mb-4">Create New Category</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="category-name" class="block text-sm font-medium text-gray-300 mb-2">Category Name</label>
+                                    <input type="text" id="category-name" placeholder="e.g., Conditioning, Strength, Cardio" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                </div>
+                                <div>
+                                    <label for="category-description" class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                                    <textarea id="category-description" rows="3" placeholder="Describe what this category includes..." class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500"></textarea>
+                                </div>
+                                <button id="save-category-btn" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500">
+                                    Create Category
+                                </button>
+                                <p id="category-error" class="text-red-400 text-sm text-center h-5"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Programs Section -->
+                <div id="programs-section" class="section hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Programs List -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+                            <h2 class="text-2xl font-semibold text-gold-300 mb-4">Workout Programs</h2>
+                            <div id="programs-list" class="space-y-3 mb-4">
+                                <p class="text-gray-400 text-center py-4">Loading programs...</p>
+                            </div>
+                        </div>
+
+                        <!-- Add Program Form -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+                            <h3 class="text-xl font-semibold text-white mb-4">Create New Program</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="program-category" class="block text-sm font-medium text-gray-300 mb-2">Category</label>
+                                    <select id="program-category" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        <option value="">Select a category...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="program-name" class="block text-sm font-medium text-gray-300 mb-2">Program Name</label>
+                                    <input type="text" id="program-name" placeholder="e.g., Rep Down Programs, Circuit Training" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                </div>
+                                <div>
+                                    <label for="program-description" class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                                    <textarea id="program-description" rows="3" placeholder="Describe this program type..." class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500"></textarea>
+                                </div>
+                                <button id="save-program-btn" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500">
+                                    Create Program
+                                </button>
+                                <p id="program-error" class="text-red-400 text-sm text-center h-5"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workouts Section -->
+                <div id="workouts-section" class="section hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Workouts List -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+                            <h2 class="text-2xl font-semibold text-gold-300 mb-4">Workouts</h2>
+                            <div id="workouts-list" class="space-y-3 mb-4">
+                                <p class="text-gray-400 text-center py-4">Loading workouts...</p>
+                            </div>
+                        </div>
+
+                        <!-- Add Workout Form -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+                            <h3 class="text-xl font-semibold text-white mb-4">Create New Workout</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="workout-program" class="block text-sm font-medium text-gray-300 mb-2">Program</label>
+                                    <select id="workout-program" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        <option value="">Select a program...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="workout-name" class="block text-sm font-medium text-gray-300 mb-2">Workout Name</label>
+                                    <input type="text" id="workout-name" placeholder="e.g., Classic Rep Down, 5-Minute Circuit" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                </div>
+                                <div>
+                                    <label for="workout-description" class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                                    <textarea id="workout-description" rows="3" placeholder="Describe this specific workout..." class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500"></textarea>
+                                </div>
+                                <button id="save-workout-btn" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500">
+                                    Create Workout
+                                </button>
+                                <p id="workout-error" class="text-red-400 text-sm text-center h-5"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Templates Section -->
+                <div id="templates-section" class="section hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Templates List -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+                            <h2 class="text-2xl font-semibold text-gold-300 mb-4">Workout Templates</h2>
+                            <div id="templates-list" class="space-y-3 mb-4">
+                                <p class="text-gray-400 text-center py-4">Loading templates...</p>
+                            </div>
+                        </div>
+
+                        <!-- Add Template Form -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+                            <h3 class="text-xl font-semibold text-white mb-4">Create New Template</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="template-workout" class="block text-sm font-medium text-gray-300 mb-2">Workout</label>
+                                    <select id="template-workout" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        <option value="">Select a workout...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="template-name" class="block text-sm font-medium text-gray-300 mb-2">Template Name</label>
+                                    <input type="text" id="template-name" placeholder="e.g., Pushup Rep Down, Cardio Circuit" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                </div>
+                                
+                                <!-- Exercise Selection -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Exercises</label>
+                                    <div id="exercise-list" class="space-y-2 mb-3 max-h-32 overflow-y-auto">
+                                        <!-- Dynamic exercise list -->
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="new-exercise" placeholder="Add exercise..." class="flex-grow bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        <button id="add-exercise-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-md">Add</button>
+                                    </div>
+                                </div>
+
+                                <!-- Workout Structure -->
+                                <div>
+                                    <label for="workout-type" class="block text-sm font-medium text-gray-300 mb-2">Workout Type</label>
+                                    <select id="workout-type" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        <option value="repdown">Rep Down (Decreasing)</option>
+                                        <option value="repup">Rep Up (Increasing)</option>
+                                        <option value="circuit">Timed Circuit</option>
+                                        <option value="straight">Straight Sets</option>
+                                        <option value="pyramid">Pyramid</option>
+                                    </select>
+                                </div>
+
+                                <!-- Type-specific options -->
+                                <div id="repdown-options" class="workout-type-options">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label for="starting-reps" class="block text-xs font-medium text-gray-300 mb-1">Starting Reps</label>
+                                            <input type="number" id="starting-reps" value="10" min="1" max="50" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white text-sm focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        </div>
+                                        <div>
+                                            <label for="ending-reps" class="block text-xs font-medium text-gray-300 mb-1">Ending Reps</label>
+                                            <input type="number" id="ending-reps" value="1" min="1" max="50" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white text-sm focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="circuit-options" class="workout-type-options hidden">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label for="work-time" class="block text-xs font-medium text-gray-300 mb-1">Work Time (sec)</label>
+                                            <input type="number" id="work-time" value="30" min="10" max="300" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white text-sm focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        </div>
+                                        <div>
+                                            <label for="rest-time" class="block text-xs font-medium text-gray-300 mb-1">Rest Time (sec)</label>
+                                            <input type="number" id="rest-time" value="15" min="0" max="300" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white text-sm focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button id="save-template-btn" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-500">
+                                    Create Template
+                                </button>
+                                <p id="template-error" class="text-red-400 text-sm text-center h-5"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="mt-8 flex justify-center space-x-4">
+                    <a href="https://dev.wrestling.systems/dashboard" class="px-6 py-2 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 transition-colors">
+                        ← Back to Dashboard
+                    </a>
+                    <a href="https://dev.wrestling.systems/repdown" class="px-6 py-2 bg-gold-500 hover:bg-gold-600 text-white rounded-md transition-colors">
+                        Try Workouts →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // DOM Elements
+        const loaderContainer = document.getElementById('loader-container');
+        const builderContent = document.getElementById('builder-content');
+        const userStatusDiv = document.getElementById('user-status');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const providerIconContainer = document.getElementById('provider-icon-container');
+        const signOutBtn = document.getElementById('signout-btn');
+
+        // Tab elements
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const sections = document.querySelectorAll('.section');
+
+        // Form elements
+        const saveCategory = document.getElementById('save-category-btn');
+        const saveProgram = document.getElementById('save-program-btn');
+        const saveWorkout = document.getElementById('save-workout-btn');
+        const saveTemplate = document.getElementById('save-template-btn');
+
+        // Firebase State
+        let auth, db, userId;
+        let exercises = [];
+
+        async function initFirebase() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
+                authDomain: "auth.wrestling.systems",
+                projectId: "wrestlingsystems",
+                storageBucket: "wrestlingsystems.appspot.com",
+                messagingSenderId: "255692661115",
+                appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
+                measurementId: "G-E52GDENT1E"
+            };
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    await populateUserInfo(user);
+                    await loadAllData();
+                    loaderContainer.classList.add('hidden');
+                    builderContent.classList.remove('hidden');
+                } else {
+                    window.location.href = 'https://dev.wrestling.systems/login';
+                }
+            });
+        }
+
+        async function populateUserInfo(user) {
+            const userRef = doc(db, "users", user.uid);
+            try {
+                const docSnap = await getDoc(userRef);
+                if (docSnap.exists() && docSnap.data().firstName) {
+                    userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
+                } else { 
+                    userDisplayName.textContent = user.displayName || user.email; 
+                }
+                const providerId = user.providerData[0]?.providerId || 'password';
+                providerIconContainer.innerHTML = getProviderIcon(providerId);
+                userEmailDisplay.textContent = user.email;
+                userStatusDiv.classList.remove('hidden');
+            } catch (error) { 
+                console.error("Error fetching user data:", error); 
+            }
+        }
+
+        async function loadAllData() {
+            await Promise.all([
+                loadCategories(),
+                loadPrograms(),
+                loadWorkouts(),
+                loadTemplates()
+            ]);
+        }
+
+        async function loadCategories() {
+            const categoriesRef = collection(db, "workoutTemplates", "categories", "items");
+            const q = query(categoriesRef, orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            
+            const categoriesList = document.getElementById('categories-list');
+            const programCategory = document.getElementById('program-category');
+            
+            categoriesList.innerHTML = '';
+            programCategory.innerHTML = '<option value="">Select a category...</option>';
+            
+            if (querySnapshot.empty) {
+                categoriesList.innerHTML = '<p class="text-gray-400 text-center py-4">No categories yet. Create your first one!</p>';
+            } else {
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const categoryCard = createCategoryCard(doc.id, data);
+                    categoriesList.appendChild(categoryCard);
+                    
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = data.name;
+                    programCategory.appendChild(option);
+                });
+            }
+        }
+
+        async function loadPrograms() {
+            const programsRef = collection(db, "workoutTemplates", "programs", "items");
+            const q = query(programsRef, orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            
+            const programsList = document.getElementById('programs-list');
+            const workoutProgram = document.getElementById('workout-program');
+            
+            programsList.innerHTML = '';
+            workoutProgram.innerHTML = '<option value="">Select a program...</option>';
+            
+            if (querySnapshot.empty) {
+                programsList.innerHTML = '<p class="text-gray-400 text-center py-4">No programs yet. Create your first one!</p>';
+            } else {
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const programCard = createProgramCard(doc.id, data);
+                    programsList.appendChild(programCard);
+                    
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = data.name;
+                    workoutProgram.appendChild(option);
+                });
+            }
+        }
+
+        async function loadWorkouts() {
+            const workoutsRef = collection(db, "workoutTemplates", "workouts", "items");
+            const q = query(workoutsRef, orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            
+            const workoutsList = document.getElementById('workouts-list');
+            const templateWorkout = document.getElementById('template-workout');
+            
+            workoutsList.innerHTML = '';
+            templateWorkout.innerHTML = '<option value="">Select a workout...</option>';
+            
+            if (querySnapshot.empty) {
+                workoutsList.innerHTML = '<p class="text-gray-400 text-center py-4">No workouts yet. Create your first one!</p>';
+            } else {
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const workoutCard = createWorkoutCard(doc.id, data);
+                    workoutsList.appendChild(workoutCard);
+                    
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = data.name;
+                    templateWorkout.appendChild(option);
+                });
+            }
+        }
+
+        async function loadTemplates() {
+            const templatesRef = collection(db, "workoutTemplates", "templates", "items");
+            const q = query(templatesRef, orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            
+            const templatesList = document.getElementById('templates-list');
+            templatesList.innerHTML = '';
+            
+            if (querySnapshot.empty) {
+                templatesList.innerHTML = '<p class="text-gray-400 text-center py-4">No templates yet. Create your first one!</p>';
+            } else {
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const templateCard = createTemplateCard(doc.id, data);
+                    templatesList.appendChild(templateCard);
+                });
+            }
+        }
+
+        function createCategoryCard(id, data) {
+            const div = document.createElement('div');
+            div.className = 'bg-gray-700/50 rounded-lg p-4 border border-gray-600 exercise-item';
+            div.innerHTML = `
+                <h4 class="font-semibold text-white text-lg mb-2">${data.name}</h4>
+                <p class="text-gray-300 text-sm">${data.description}</p>
+                <p class="text-gray-400 text-xs mt-2">Created: ${new Date(data.createdAt.toDate()).toLocaleDateString()}</p>
+            `;
+            return div;
+        }
+
+        function createProgramCard(id, data) {
+            const div = document.createElement('div');
+            div.className = 'bg-gray-700/50 rounded-lg p-4 border border-gray-600 exercise-item';
+            div.innerHTML = `
+                <h4 class="font-semibold text-white text-lg mb-2">${data.name}</h4>
+                <p class="text-gray-300 text-sm">${data.description}</p>
+                <p class="text-gold-300 text-xs mt-1">Category: ${data.categoryName || 'Unknown'}</p>
+                <p class="text-gray-400 text-xs mt-1">Created: ${new Date(data.createdAt.toDate()).toLocaleDateString()}</p>
+            `;
+            return div;
+        }
+
+        function createWorkoutCard(id, data) {
+            const div = document.createElement('div');
+            div.className = 'bg-gray-700/50 rounded-lg p-4 border border-gray-600 exercise-item';
+            div.innerHTML = `
+                <h4 class="font-semibold text-white text-lg mb-2">${data.name}</h4>
+                <p class="text-gray-300 text-sm">${data.description}</p>
+                <p class="text-gold-300 text-xs mt-1">Program: ${data.programName || 'Unknown'}</p>
+                <p class="text-gray-400 text-xs mt-1">Created: ${new Date(data.createdAt.toDate()).toLocaleDateString()}</p>
+            `;
+            return div;
+        }
+
+        function createTemplateCard(id, data) {
+            const div = document.createElement('div');
+            div.className = 'bg-gray-700/50 rounded-lg p-4 border border-gray-600 exercise-item';
+            div.innerHTML = `
+                <h4 class="font-semibold text-white text-lg mb-2">${data.name}</h4>
+                <div class="text-sm text-gray-300 mb-2">
+                    <span class="font-medium">Exercises:</span> ${data.exercises.map(e => e.name).join(', ')}
+                </div>
+                <div class="text-sm text-blue-300 mb-2">
+                    <span class="font-medium">Type:</span> ${data.structure.type}
+                    ${data.structure.startingReps ? ` (${data.structure.startingReps} → ${data.structure.endingReps || 1})` : ''}
+                </div>
+                <p class="text-gold-300 text-xs mt-1">Workout: ${data.workoutName || 'Unknown'}</p>
+                <p class="text-gray-400 text-xs mt-1">Created: ${new Date(data.createdAt.toDate()).toLocaleDateString()}</p>
+            `;
+            return div;
+        }
+
+        // Category creation
+        async function handleSaveCategory() {
+            const name = document.getElementById('category-name').value.trim();
+            const description = document.getElementById('category-description').value.trim();
+            const errorEl = document.getElementById('category-error');
+            
+            if (!name) {
+                errorEl.textContent = 'Category name is required';
+                return;
+            }
+            
+            saveCategory.disabled = true;
+            errorEl.textContent = '';
+            
+            try {
+                const categoryData = {
+                    name,
+                    description,
+                    createdBy: userId,
+                    createdAt: serverTimestamp()
+                };
+                
+                await addDoc(collection(db, "workoutTemplates", "categories", "items"), categoryData);
+                
+                document.getElementById('category-name').value = '';
+                document.getElementById('category-description').value = '';
+                
+                await loadCategories();
+                
+            } catch (error) {
+                console.error("Error saving category:", error);
+                errorEl.textContent = 'Failed to save category';
+            } finally {
+                saveCategory.disabled = false;
+            }
+        }
+
+        // Program creation  
+        async function handleSaveProgram() {
+            const categoryId = document.getElementById('program-category').value;
+            const name = document.getElementById('program-name').value.trim();
+            const description = document.getElementById('program-description').value.trim();
+            const errorEl = document.getElementById('program-error');
+            
+            if (!categoryId || !name) {
+                errorEl.textContent = 'Category and program name are required';
+                return;
+            }
+            
+            saveProgram.disabled = true;
+            errorEl.textContent = '';
+            
+            try {
+                const categoryName = document.getElementById('program-category').selectedOptions[0].textContent;
+                
+                const programData = {
+                    name,
+                    description,
+                    categoryId,
+                    categoryName,
+                    createdBy: userId,
+                    createdAt: serverTimestamp()
+                };
+                
+                await addDoc(collection(db, "workoutTemplates", "programs", "items"), programData);
+                
+                document.getElementById('program-category').value = '';
+                document.getElementById('program-name').value = '';
+                document.getElementById('program-description').value = '';
+                
+                await loadPrograms();
+                
+            } catch (error) {
+                console.error("Error saving program:", error);
+                errorEl.textContent = 'Failed to save program';
+            } finally {
+                saveProgram.disabled = false;
+            }
+        }
+
+        // Workout creation
+        async function handleSaveWorkout() {
+            const programId = document.getElementById('workout-program').value;
+            const name = document.getElementById('workout-name').value.trim();
+            const description = document.getElementById('workout-description').value.trim();
+            const errorEl = document.getElementById('workout-error');
+            
+            if (!programId || !name) {
+                errorEl.textContent = 'Program and workout name are required';
+                return;
+            }
+            
+            saveWorkout.disabled = true;
+            errorEl.textContent = '';
+            
+            try {
+                const programName = document.getElementById('workout-program').selectedOptions[0].textContent;
+                
+                const workoutData = {
+                    name,
+                    description,
+                    programId,
+                    programName,
+                    createdBy: userId,
+                    createdAt: serverTimestamp()
+                };
+                
+                await addDoc(collection(db, "workoutTemplates", "workouts", "items"), workoutData);
+                
+                document.getElementById('workout-program').value = '';
+                document.getElementById('workout-name').value = '';
+                document.getElementById('workout-description').value = '';
+                
+                await loadWorkouts();
+                
+            } catch (error) {
+                console.error("Error saving workout:", error);
+                errorEl.textContent = 'Failed to save workout';
+            } finally {
+                saveWorkout.disabled = false;
+            }
+        }
+
+        // Template creation
+        async function handleSaveTemplate() {
+            const workoutId = document.getElementById('template-workout').value;
+            const name = document.getElementById('template-name').value.trim();
+            const workoutType = document.getElementById('workout-type').value;
+            const errorEl = document.getElementById('template-error');
+            
+            if (!workoutId || !name || exercises.length === 0) {
+                errorEl.textContent = 'Workout, template name, and at least one exercise are required';
+                return;
+            }
+            
+            saveTemplate.disabled = true;
+            errorEl.textContent = '';
+            
+            try {
+                const workoutName = document.getElementById('template-workout').selectedOptions[0].textContent;
+                
+                // Build structure based on workout type
+                let structure = { type: workoutType };
+                
+                if (workoutType === 'repdown' || workoutType === 'repup') {
+                    structure.startingReps = parseInt(document.getElementById('starting-reps').value) || 10;
+                    structure.endingReps = parseInt(document.getElementById('ending-reps').value) || 1;
+                } else if (workoutType === 'circuit') {
+                    structure.workTime = parseInt(document.getElementById('work-time').value) || 30;
+                    structure.restTime = parseInt(document.getElementById('rest-time').value) || 15;
+                }
+                
+                const templateData = {
+                    name,
+                    workoutId,
+                    workoutName,
+                    exercises: exercises.map(ex => ({ name: ex, type: 'reps' })),
+                    structure,
+                    createdBy: userId,
+                    createdAt: serverTimestamp()
+                };
+                
+                await addDoc(collection(db, "workoutTemplates", "templates", "items"), templateData);
+                
+                // Reset form
+                document.getElementById('template-workout').value = '';
+                document.getElementById('template-name').value = '';
+                exercises = [];
+                updateExerciseList();
+                
+                await loadTemplates();
+                
+            } catch (error) {
+                console.error("Error saving template:", error);
+                errorEl.textContent = 'Failed to save template';
+            } finally {
+                saveTemplate.disabled = false;
+            }
+        }
+
+        function addExercise() {
+            const input = document.getElementById('new-exercise');
+            const exerciseName = input.value.trim();
+            
+            if (exerciseName && !exercises.includes(exerciseName)) {
+                exercises.push(exerciseName);
+                input.value = '';
+                updateExerciseList();
+            }
+        }
+
+        function updateExerciseList() {
+            const list = document.getElementById('exercise-list');
+            list.innerHTML = '';
+            
+            exercises.forEach((exercise, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-gray-700/50 rounded px-3 py-2';
+                div.innerHTML = `
+                    <span class="text-white text-sm">${exercise}</span>
+                    <button onclick="removeExercise(${index})" class="text-red-400 hover:text-red-300">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function showWorkoutTypeOptions() {
+            const workoutType = document.getElementById('workout-type').value;
+            const options = document.querySelectorAll('.workout-type-options');
+            
+            options.forEach(option => option.classList.add('hidden'));
+            
+            if (workoutType === 'repdown' || workoutType === 'repup') {
+                document.getElementById('repdown-options').classList.remove('hidden');
+            } else if (workoutType === 'circuit') {
+                document.getElementById('circuit-options').classList.remove('hidden');
+            }
+        }
+
+        function getProviderIcon(providerId) {
+            switch (providerId) {
+                case 'google.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
+                case 'facebook.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
+                case 'microsoft.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
+                default:
+                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
+            }
+        }
+
+        // Global functions
+        window.removeExercise = function(index) {
+            exercises.splice(index, 1);
+            updateExerciseList();
+        };
+
+        // Tab switching
+        function switchTab(targetTab) {
+            // Update tab buttons
+            tabBtns.forEach(btn => {
+                btn.classList.remove('active', 'bg-gold-500', 'text-white');
+                btn.classList.add('text-gray-300', 'hover:text-white');
+            });
+            
+            const activeBtn = document.getElementById(`tab-${targetTab}`);
+            activeBtn.classList.add('active', 'bg-gold-500', 'text-white');
+            activeBtn.classList.remove('text-gray-300', 'hover:text-white');
+            
+            // Update sections
+            sections.forEach(section => {
+                section.classList.add('hidden');
+                section.classList.remove('active');
+            });
+            
+            const activeSection = document.getElementById(`${targetTab}-section`);
+            activeSection.classList.remove('hidden');
+            activeSection.classList.add('active');
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+            
+            // Tab switching
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tab = btn.id.replace('tab-', '');
+                    switchTab(tab);
+                });
+            });
+            
+            // Form submissions
+            saveCategory.addEventListener('click', handleSaveCategory);
+            saveProgram.addEventListener('click', handleSaveProgram);
+            saveWorkout.addEventListener('click', handleSaveWorkout);
+            saveTemplate.addEventListener('click', handleSaveTemplate);
+            
+            // Exercise management
+            document.getElementById('add-exercise-btn').addEventListener('click', addExercise);
+            document.getElementById('new-exercise').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addExercise();
+            });
+            
+            // Workout type selection
+            document.getElementById('workout-type').addEventListener('change', showWorkoutTypeOptions);
+            
+            // Auth
+            signOutBtn.addEventListener('click', () => signOut(auth));
+            
+            // Initialize CSS for active tab
+            document.getElementById('tab-categories').classList.add('bg-gold-500', 'text-white');
+            document.querySelector('.tab-btn:not(#tab-categories)').classList.add('text-gray-300', 'hover:text-white');
+        });
+    </script>
+</body>
+</html>
