@@ -259,31 +259,33 @@
         
         // Firebase State
         let auth, db, userId;
+        
+        async function initFirebase() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
+                authDomain: "auth.wrestling.systems",
+                projectId: "wrestlingsystems",
+                storageBucket: "wrestlingsystems.appspot.com",
+                messagingSenderId: "255692661115",
+                appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
+                measurementId: "G-E52GDENT1E"
+            };
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
-            authDomain: "auth.wrestling.systems",
-            projectId: "wrestlingsystems",
-            storageBucket: "wrestlingsystems.appspot.com",
-            messagingSenderId: "255692661115",
-            appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
-            measurementId: "G-E52GDENT1E"
-        };
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                await populateUserInfo(user);
-                await fetchAndDisplayAthletesForSelection();
-                loaderContainer.classList.add('hidden');
-                showHubScreen(); // Always start at the hub
-            } else {
-                showLoginPrompt();
-            }
-        });
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    await populateUserInfo(user);
+                    await fetchAndDisplayAthletesForSelection();
+                    loaderContainer.classList.add('hidden');
+                    showHubScreen(); 
+                } else {
+                    showLoginPrompt();
+                }
+            });
+        }
 
         async function populateUserInfo(user) {
             const userRef = doc(db, "users", user.uid);
@@ -379,12 +381,10 @@
             if(!validateSetup()) return;
             
             if (!isWorkoutInProgress) {
-                // This is a brand new workout
                 isWorkoutInProgress = true;
                 startingRps = parseInt(repsInput.value);
                 currentRps = startingRps;
                 
-                // Reset and initialize states for all selected athletes
                 exerciseStates = {};
                 roundCompletionStates = {};
                 workoutTotals = {};
@@ -398,16 +398,14 @@
                     });
                 });
             } else {
-                // Adding athletes to an existing workout
                 const existingAthleteIds = Object.keys(workoutTotals);
                 const newAthletes = selectedAthletes.filter(a => !existingAthleteIds.includes(a.id));
 
                 newAthletes.forEach(athlete => {
                     exerciseStates[athlete.id] = {};
                     roundCompletionStates[athlete.id] = {};
-                    workoutTotals[athlete.id] = { completed: 0, missed: 0 }; // Start fresh
+                    workoutTotals[athlete.id] = { completed: 0, missed: 0 };
                     workoutExercises.forEach(ex => {
-                        // They join at the CURRENT round's rep count
                         exerciseStates[athlete.id][ex] = currentRps; 
                         roundCompletionStates[athlete.id][ex] = false;
                     });
@@ -425,7 +423,7 @@
 
         function validateSetup() {
             let isValid = true;
-            if (!isWorkoutInProgress) { // Only validate if it's a new workout
+            if (!isWorkoutInProgress) { 
                 const reps = parseInt(repsInput.value);
                 if (isNaN(reps) || reps < 1 || reps > 100) {
                     repsError.textContent = 'Please enter a number between 1 and 100.';
@@ -519,7 +517,7 @@
                         workoutTotals[athlete.id].missed += currentRps;
                         if(nextReps > 0) exerciseStates[athlete.id][ex] += nextReps;
                     } else {
-                        exerciseStates[athlete.id][ex] = nextReps;
+                        exerciseStates[athlete.id][ex] = nextRps;
                     }
                     roundCompletionStates[athlete.id][ex] = false;
                 });
@@ -601,14 +599,12 @@
             athleteHubScreen.classList.remove('hidden');
             
             if (isWorkoutInProgress) {
-                 // Pre-select athletes from the ongoing workout
                 const athleteElements = document.querySelectorAll('.athlete-selectable');
                 const activeIds = selectedAthletes.map(a => a.id);
                 athleteElements.forEach(el => {
                     el.dataset.selected = activeIds.includes(el.dataset.athleteId) ? 'true' : 'false';
                 });
             } else {
-                 // Reset selections for a new workout
                 document.querySelectorAll('.athlete-selectable').forEach(el => el.dataset.selected = 'false');
             }
             updateSelectionUI();
