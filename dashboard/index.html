@@ -110,7 +110,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, collection, updateDoc, arrayUnion, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, collection, updateDoc, arrayUnion, query, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // DOM Elements
         const loaderContainer = document.getElementById('loader-container');
@@ -171,8 +171,7 @@
         async function fetchAndDisplayAthletes() {
             const userRef = doc(db, "users", userId);
             const userSnap = await getDoc(userRef);
-
-            // Clear the list before rendering to prevent duplicates
+            
             athleteListDiv.innerHTML = ''; 
 
             if (!userSnap.exists() || !userSnap.data().managedAthletes || userSnap.data().managedAthletes.length === 0) {
@@ -255,7 +254,6 @@
             addAthleteError.textContent = '';
 
             try {
-                // Step 1: Create the new athlete document
                 const newAthleteRef = await addDoc(collection(db, "athletes"), {
                     firstName: name,
                     parentId: userId,
@@ -263,14 +261,13 @@
                     associatedAuthId: null
                 });
 
-                // Step 2: Update the parent's user document
                 const userRef = doc(db, "users", userId);
                 await setDoc(userRef, {
                     managedAthletes: arrayUnion(newAthleteRef.id)
                 }, { merge: true });
 
                 athleteNameInput.value = '';
-                await fetchAndDisplayAthletes(); // Refresh the list
+                await fetchAndDisplayAthletes();
 
             } catch (error) {
                 console.error("Error adding athlete:", error);
@@ -311,7 +308,6 @@
             signOutBtn.addEventListener('click', () => signOut(auth));
             saveAthleteBtn.addEventListener('click', handleAddAthlete);
             
-            // Event delegation for toggling workout history
             athleteListDiv.addEventListener('click', (e) => {
                 const button = e.target.closest('button[data-athlete-id]');
                 if (!button) return;
@@ -337,5 +333,4 @@
     </script>
 </body>
 </html>
-
 
