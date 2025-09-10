@@ -330,50 +330,55 @@
         
         // Load athletes
         async function loadAthletes() {
-            debugLog("Loading athletes - DETAILED DEBUG VERSION");
-            debugLog("Current user ID:", currentUser.uid);
-            debugLog("Current user email:", currentUser.email);
+            debugLog("🔍 ATHLETE DEBUG - DETAILED VERSION");
+            debugLog("👤 Current user ID:", currentUser.uid);
+            debugLog("📧 Current user email:", currentUser.email);
             
             try {
                 // First, let's get ALL athletes (no filter) to see if any exist
-                debugLog("Querying ALL athletes first...");
+                debugLog("🔍 Step 1: Querying ALL athletes in database...");
                 const allAthletesRef = db.collection('athletes');
                 const allAthletesSnapshot = await allAthletesRef.get();
-                debugLog(`Total athletes in database: ${allAthletesSnapshot.size}`);
+                debugLog(`📊 RESULT: Total athletes in database: ${allAthletesSnapshot.size}`);
                 
                 if (!allAthletesSnapshot.empty) {
+                    debugLog("👥 ALL ATHLETES IN DATABASE:");
                     allAthletesSnapshot.docs.forEach((doc, index) => {
                         const data = doc.data();
-                        debugLog(`Athlete ${index + 1}:`, {
+                        debugLog(`   ${index + 1}. ${data.firstName} ${data.lastName}`, {
                             id: doc.id,
-                            firstName: data.firstName,
-                            lastName: data.lastName,
                             parentUserId: data.parentUserId,
-                            matchesCurrentUser: data.parentUserId === currentUser.uid
+                            matchesCurrentUser: data.parentUserId === currentUser.uid ? "✅ YES" : "❌ NO"
                         });
                     });
+                } else {
+                    debugLog("❌ NO athletes found in entire database!");
                 }
                 
                 // Now query for current user's athletes
-                debugLog("Querying athletes for current user...");
+                debugLog("🔍 Step 2: Querying athletes for current user...");
                 const athletesRef = db.collection('athletes').where('parentUserId', '==', currentUser.uid);
                 const athletesSnapshot = await athletesRef.get();
-                debugLog(`Athletes found for current user: ${athletesSnapshot.size}`);
+                debugLog(`📊 RESULT: Athletes for current user: ${athletesSnapshot.size}`);
                 
                 if (!athletesSnapshot.empty) {
-                    debugLog(`Found ${athletesSnapshot.size} athletes for current user`);
+                    debugLog(`✅ Found ${athletesSnapshot.size} athletes for current user:`);
                     athletesSnapshot.docs.forEach((doc, index) => {
                         const data = doc.data();
-                        debugLog(`User's Athlete ${index + 1}:`, data);
+                        debugLog(`   ${index + 1}. ${data.firstName} ${data.lastName}`, data);
                     });
                     displayAthletes(athletesSnapshot.docs);
                 } else {
-                    debugLog("No athletes found for current user");
+                    debugLog("❌ NO athletes found for current user");
+                    debugLog("🔍 Possible reasons:");
+                    debugLog("   - Athletes exist but have different parentUserId");
+                    debugLog("   - No athletes created yet");
+                    debugLog("   - Data type mismatch in parentUserId field");
                     showNoAthletes();
                 }
                 
             } catch (error) {
-                debugError("Error loading athletes", error);
+                debugError("💥 Error loading athletes", error);
                 showNoAthletes();
             }
         }
