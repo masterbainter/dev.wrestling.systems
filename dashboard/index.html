@@ -123,7 +123,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, collection, deleteDoc, arrayRemove, query, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, collection, deleteDoc, arrayRemove, arrayUnion, deleteField, query, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // DOM Elements
         const loaderContainer = document.getElementById('loader-container');
@@ -194,28 +194,49 @@
             
             athleteListDiv.innerHTML = ''; 
 
-            if (!userSnap.exists() || !userSnap.data().managedAthletes || userSnap.data().managedAthletes.length === 0) {
+            if (!userSnap.exists() || !userSnap.data().managedAthletes) {
+                athleteListDiv.appendChild(noAthletesMsg);
+                noAthletesMsg.classList.remove('hidden');
+                return;
+            }
+            
+            const managedAthletes = userSnap.data().managedAthletes;
+            
+            // Handle both legacy array format and enhanced object format
+            let athleteIds = [];
+            if (Array.isArray(managedAthletes)) {
+                // Legacy format: managedAthletes is an array of IDs
+                athleteIds = managedAthletes;
+            } else if (typeof managedAthletes === 'object') {
+                // Enhanced format: managedAthletes is an object with IDs as keys
+                athleteIds = Object.keys(managedAthletes);
+            }
+            
+            if (athleteIds.length === 0) {
                 athleteListDiv.appendChild(noAthletesMsg);
                 noAthletesMsg.classList.remove('hidden');
                 return;
             }
             
             noAthletesMsg.classList.add('hidden');
-            const athleteIds = userSnap.data().managedAthletes;
 
             for (const athleteId of athleteIds) {
                 const athleteRef = doc(db, "athletes", athleteId);
                 const athleteSnap = await getDoc(athleteRef);
                 if (athleteSnap.exists()) {
                     const athleteData = athleteSnap.data();
+                    
+                    // Use enhanced name format (full name) or fallback to first name
+                    const displayName = athleteData.name || `${athleteData.firstName || ''} ${athleteData.lastName || ''}`.trim() || athleteData.firstName || 'Unnamed Athlete';
+                    
                     const card = document.createElement('div');
                     card.className = 'bg-gray-700/50 rounded-lg transition-all';
                     card.innerHTML = `
                         <div class="w-full text-left font-semibold text-lg p-4 flex justify-between items-center">
                             <button class="flex-grow text-left" data-action="toggle-history" data-athlete-id="${athleteId}">
-                                <span>${athleteData.firstName}</span>
+                                <span>${displayName}</span>
                             </button>
-                            <button class="p-2 text-gray-400 hover:text-red-400" data-action="delete" data-athlete-id="${athleteId}" data-athlete-name="${athleteData.firstName}">
+                            <button class="p-2 text-gray-400 hover:text-red-400" data-action="delete" data-athlete-id="${athleteId}" data-athlete-name="${displayName}">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             </button>
                             <button class="p-2 text-gray-400 hover:text-white" data-action="toggle-history" data-athlete-id="${athleteId}">
@@ -289,9 +310,32 @@
                 });
 
                 const userRef = doc(db, "users", userId);
-                await setDoc(userRef, {
-                    managedAthletes: arrayUnion(newAthleteRef.id)
-                }, { merge: true });
+                const userSnap = await getDoc(userRef);
+                
+                if (userSnap.exists() && userSnap.data().managedAthletes) {
+                    const managedAthletes = userSnap.data().managedAthletes;
+                    
+                    if (Array.isArray(managedAthletes)) {
+                        // Legacy array format - use arrayUnion
+                        await setDoc(userRef, {
+                            managedAthletes: arrayUnion(newAthleteRef.id)
+                        }, { merge: true });
+                    } else if (typeof managedAthletes === 'object') {
+                        // Enhanced object format - add to object
+                        await setDoc(userRef, {
+                            [`managedAthletes.${newAthleteRef.id}`]: {
+                                relationship: "athlete",
+                                addedAt: serverTimestamp(),
+                                permissions: ["view", "edit", "workout"]
+                            }
+                        }, { merge: true });
+                    }
+                } else {
+                    // No existing data - create array format for backward compatibility
+                    await setDoc(userRef, {
+                        managedAthletes: [newAthleteRef.id]
+                    }, { merge: true });
+                }
 
                 athleteNameInput.value = '';
                 await fetchAndDisplayAthletes();
@@ -309,9 +353,23 @@
                 try {
                     // Step 1: Remove the reference from the parent's document
                     const userRef = doc(db, "users", userId);
-                    await setDoc(userRef, {
-                        managedAthletes: arrayRemove(athleteId)
-                    }, { merge: true });
+                    const userSnap = await getDoc(userRef);
+                    
+                    if (userSnap.exists() && userSnap.data().managedAthletes) {
+                        const managedAthletes = userSnap.data().managedAthletes;
+                        
+                        if (Array.isArray(managedAthletes)) {
+                            // Legacy array format - use arrayRemove
+                            await setDoc(userRef, {
+                                managedAthletes: arrayRemove(athleteId)
+                            }, { merge: true });
+                        } else if (typeof managedAthletes === 'object') {
+                            // Enhanced object format - remove property
+                            const updates = {};
+                            updates[`managedAthletes.${athleteId}`] = deleteField();
+                            await setDoc(userRef, updates, { merge: true });
+                        }
+                    }
 
                     // Step 2: Delete the athlete's document
                     // Note: This does not delete subcollections like workouts. For that, a cloud function is best.
