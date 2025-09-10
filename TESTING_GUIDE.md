@@ -6,8 +6,8 @@ This guide walks you through testing the complete enhanced wrestling.systems wor
 
 ## **🚀 New Features to Test**
 
-### **1. Enhanced Athlete Dashboard**
-- **URL:** `https://dev.wrestling.systems/dashboard-enhanced/`
+### **1. Athlete Dashboard**
+- **URL:** `https://dev.wrestling.systems/dashboard/`
 - **Features:** Rich athlete profiles, relationship tracking, age calculation, legacy migration
 
 ### **2. Workout Template Builder** 
@@ -26,7 +26,7 @@ This guide walks you through testing the complete enhanced wrestling.systems wor
 
 #### **1.1 Test Enhanced Dashboard**
 ```
-1. Go to: https://dev.wrestling.systems/dashboard-enhanced/
+1. Go to: https://dev.wrestling.systems/dashboard/
 2. Sign in with your Firebase account
 3. Create a new athlete with:
    - First Name: "TestAthlete"
