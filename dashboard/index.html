@@ -462,9 +462,16 @@
             // Sign out
             const signOutBtn = document.getElementById('signout-btn');
             if (signOutBtn) {
-                signOutBtn.addEventListener('click', () => {
+                signOutBtn.addEventListener('click', async () => {
                     debugLog("Sign out clicked");
-                    auth.signOut();
+                    try {
+                        await auth.signOut();
+                        debugLog("Successfully signed out");
+                        // Redirect to login with logout parameter to prevent redirect loop
+                        window.location.href = 'https://dev.wrestling.systems/login?logout=true';
+                    } catch (error) {
+                        debugError("Sign out error", error);
+                    }
                 });
             }
             

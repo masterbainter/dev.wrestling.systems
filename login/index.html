@@ -211,15 +211,26 @@
             }
         }
 
+        // Check if user was just logged out (prevent redirect loop)
+        const urlParams = new URLSearchParams(window.location.search);
+        const justLoggedOut = urlParams.get('logout') === 'true';
+        
         // Auth State Listener
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // User is already signed in, redirect to dashboard
+            if (user && !justLoggedOut) {
+                // User is already signed in, redirect to dashboard (unless just logged out)
                 window.location.href = "https://dev.wrestling.systems/dashboard/";
             } else {
-                // User is signed out.
+                // User is signed out or just logged out
                 loginContainer.classList.remove('hidden');
                 userStatusDiv.classList.add('hidden');
+                
+                // Clear logout parameter from URL after a moment
+                if (justLoggedOut) {
+                    setTimeout(() => {
+                        window.history.replaceState({}, document.title, '/login/');
+                    }, 1000);
+                }
             }
         });
 
