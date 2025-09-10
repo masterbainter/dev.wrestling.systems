@@ -245,31 +245,58 @@
             auth = getAuth(app);
 
             onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    try {
-                        await populateUserInfo(user);
-                        await fetchAndDisplayAthletes();
-                    } catch (error) {
-                        console.error("Error loading dashboard:", error);
-                        // Show dashboard even if there are permission errors
-                        userDisplayName.textContent = user.displayName || user.email || 'User';
-                        userEmailDisplay.textContent = user.email;
-                        userStatusDiv.classList.remove('hidden');
+                console.log("Auth state changed:", user ? "User logged in" : "User logged out");
+                try {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("User ID:", userId);
                         
-                        // Show error message in athlete list
-                        athleteListDiv.innerHTML = `
-                            <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-4">
-                                <h3 class="text-red-300 font-semibold mb-2">⚠️ Permission Error</h3>
-                                <p class="text-red-200 text-sm">Firebase security rules need to be updated. Please contact support.</p>
-                                <p class="text-red-200 text-xs mt-2">Error: ${error.message}</p>
-                            </div>
-                        `;
+                        try {
+                            await populateUserInfo(user);
+                            await fetchAndDisplayAthletes();
+                        } catch (error) {
+                            console.error("Error loading dashboard data:", error);
+                            // Show dashboard even if there are permission errors
+                            userDisplayName.textContent = user.displayName || user.email || 'User';
+                            userEmailDisplay.textContent = user.email;
+                            userStatusDiv.classList.remove('hidden');
+                            
+                            // Show error message in athlete list
+                            athleteListDiv.innerHTML = `
+                                <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-4">
+                                    <h3 class="text-red-300 font-semibold mb-2">⚠️ Dashboard Error</h3>
+                                    <p class="text-red-200 text-sm">There was an error loading your data. You can still use the app.</p>
+                                    <p class="text-red-200 text-xs mt-2">Error: ${error.message}</p>
+                                </div>
+                            `;
+                        }
+                        
+                        // Always hide loader and show dashboard for authenticated users
+                        loaderContainer.classList.add('hidden');
+                        dashboardContent.classList.remove('hidden');
+                        console.log("Dashboard displayed");
+                    } else {
+                        console.log("No user, redirecting to login");
+                        window.location.href = 'https://dev.wrestling.systems/login';
                     }
+                } catch (error) {
+                    console.error("Critical error in auth state handler:", error);
+                    // Even on critical error, hide loader
                     loaderContainer.classList.add('hidden');
                     dashboardContent.classList.remove('hidden');
-                } else {
-                    window.location.href = 'https://dev.wrestling.systems/login';
+                    // Show critical error message
+                    document.body.innerHTML = `
+                        <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                            <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-8 max-w-md">
+                                <h2 class="text-red-300 font-bold text-xl mb-4">Critical Error</h2>
+                                <p class="text-red-200 mb-4">Unable to initialize the application.</p>
+                                <p class="text-red-200 text-sm">Error: ${error.message}</p>
+                                <button onclick="window.location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                                    Reload Page
+                                </button>
+                            </div>
+                        </div>
+                    `;
                 }
             });
         }
@@ -666,7 +693,45 @@
 
         // Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
-            initFirebase();
+            console.log("DOM loaded, initializing Firebase...");
+            
+            // Add timeout to prevent infinite loading
+            const timeout = setTimeout(() => {
+                console.warn("Firebase initialization timeout");
+                loaderContainer.classList.add('hidden');
+                document.body.innerHTML = `
+                    <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                        <div class="bg-yellow-900/30 border border-yellow-500/30 rounded-lg p-8 max-w-md">
+                            <h2 class="text-yellow-300 font-bold text-xl mb-4">Connection Timeout</h2>
+                            <p class="text-yellow-200 mb-4">Unable to connect to Firebase. Please check your internet connection.</p>
+                            <button onclick="window.location.reload()" class="mt-4 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }, 10000); // 10 second timeout
+            
+            initFirebase().then(() => {
+                clearTimeout(timeout);
+                console.log("Firebase initialized successfully");
+            }).catch(error => {
+                clearTimeout(timeout);
+                console.error("Firebase initialization failed:", error);
+                loaderContainer.classList.add('hidden');
+                document.body.innerHTML = `
+                    <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                        <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-8 max-w-md">
+                            <h2 class="text-red-300 font-bold text-xl mb-4">Initialization Failed</h2>
+                            <p class="text-red-200 mb-4">Firebase failed to initialize.</p>
+                            <p class="text-red-200 text-sm mb-4">Error: ${error.message}</p>
+                            <button onclick="window.location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                                Reload Page
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
             
             signOutBtn.addEventListener('click', () => signOut(auth));
             saveAthleteBtn.addEventListener('click', handleAddAthlete);
