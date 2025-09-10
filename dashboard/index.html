@@ -195,10 +195,11 @@
     </div>
 
     <!-- Firebase -->
-    <script type="module">
+    <!-- Debug system loaded first, before any modules -->
+    <script>
         console.log("Wrestling Systems Dashboard - Script started");
         
-        // Create error logging system that shows on page
+        // Create error logging system that shows on page (non-module script)
         window.debugLog = function(message, data = null) {
             console.log(message, data);
             const debugDiv = document.getElementById('debug-output') || createDebugDiv();
@@ -233,13 +234,25 @@
         }
         
         debugLog("Debug logging system initialized");
+    </script>
 
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Firebase modules loaded separately with error handling -->
+    <script type="module">
+        debugLog("Loading Firebase modules...");
+        
+        try {
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+            debugLog("Firebase app module loaded");
+            
+            const { getAuth, onAuthStateChanged, signOut, sendEmailVerification } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+            debugLog("Firebase auth module loaded");
+            
+            const { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, arrayUnion } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            debugLog("Firebase firestore module loaded");
+            debugLog("All Firebase modules loaded successfully");
 
-        // DOM Elements
-        const loaderContainer = document.getElementById('loader-container');
+            // DOM Elements
+            const loaderContainer = document.getElementById('loader-container');
         const dashboardContent = document.getElementById('dashboard-content');
         const userStatusDiv = document.getElementById('user-status');
         const userDisplayName = document.getElementById('user-display-name');
@@ -805,6 +818,31 @@
             showAddAthleteBtn.addEventListener('click', showAddAthleteForm);
             cancelAddAthleteBtn.addEventListener('click', hideAddAthleteForm);
         });
+        
+        } catch (error) {
+            debugError("Critical Firebase module loading error", error);
+            
+            // Hide loader and show error page
+            const loaderContainer = document.getElementById('loader-container');
+            const dashboardContent = document.getElementById('dashboard-content');
+            
+            if (loaderContainer) {
+                loaderContainer.classList.add('hidden');
+            }
+            
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                    <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-8 max-w-md">
+                        <h2 class="text-red-300 font-bold text-xl mb-4">Firebase Loading Failed</h2>
+                        <p class="text-red-200 mb-4">Unable to load Firebase modules.</p>
+                        <p class="text-red-200 text-sm mb-4">Error: ${error.message}</p>
+                        <button onclick="window.location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                            Reload Page
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
     </script>
 </body>
 </html>
