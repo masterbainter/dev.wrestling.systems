@@ -197,6 +197,42 @@
     <!-- Firebase -->
     <script type="module">
         console.log("Wrestling Systems Dashboard - Script started");
+        
+        // Create error logging system that shows on page
+        window.debugLog = function(message, data = null) {
+            console.log(message, data);
+            const debugDiv = document.getElementById('debug-output') || createDebugDiv();
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-xs text-gray-400 mb-1';
+            logEntry.innerHTML = `[${timestamp}] ${message} ${data ? JSON.stringify(data) : ''}`;
+            debugDiv.appendChild(logEntry);
+            // Keep only last 20 logs
+            if (debugDiv.children.length > 20) {
+                debugDiv.removeChild(debugDiv.firstChild);
+            }
+        };
+        
+        window.debugError = function(message, error = null) {
+            console.error(message, error);
+            const debugDiv = document.getElementById('debug-output') || createDebugDiv();
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-xs text-red-400 mb-1';
+            logEntry.innerHTML = `[${timestamp}] ERROR: ${message} ${error ? error.message || error : ''}`;
+            debugDiv.appendChild(logEntry);
+        };
+        
+        function createDebugDiv() {
+            const debugDiv = document.createElement('div');
+            debugDiv.id = 'debug-output';
+            debugDiv.className = 'fixed bottom-4 right-4 bg-gray-900 p-4 rounded-lg max-w-md max-h-60 overflow-y-auto text-xs border border-gray-700';
+            debugDiv.innerHTML = '<div class="text-gold-300 font-semibold mb-2">Debug Log</div>';
+            document.body.appendChild(debugDiv);
+            return debugDiv;
+        }
+        
+        debugLog("Debug logging system initialized");
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -247,6 +283,7 @@
         }
 
         async function initFirebase() {
+            debugLog("initFirebase started");
             const firebaseConfig = {
                 apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
                 authDomain: "auth.wrestling.systems",
@@ -259,19 +296,25 @@
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
+            debugLog("Firebase app initialized");
 
             onAuthStateChanged(auth, async (user) => {
-                console.log("Auth state changed:", user ? "User logged in" : "User logged out");
+                debugLog("Auth state changed", user ? "User logged in" : "User logged out");
                 try {
                     if (user) {
                         userId = user.uid;
-                        console.log("User ID:", userId);
+                        debugLog("User ID", userId);
                         
                         try {
+                            debugLog("Starting populateUserInfo");
                             await populateUserInfo(user);
+                            debugLog("populateUserInfo completed");
+                            
+                            debugLog("Starting fetchAndDisplayAthletes");
                             await fetchAndDisplayAthletes();
+                            debugLog("fetchAndDisplayAthletes completed");
                         } catch (error) {
-                            console.error("Error loading dashboard data:", error);
+                            debugError("Error loading dashboard data", error);
                             // Show dashboard even if there are permission errors
                             userDisplayName.textContent = user.displayName || user.email || 'User';
                             userEmailDisplay.textContent = user.email;
@@ -288,15 +331,16 @@
                         }
                         
                         // Always hide loader and show dashboard for authenticated users
+                        debugLog("Hiding loader, showing dashboard");
                         loaderContainer.classList.add('hidden');
                         dashboardContent.classList.remove('hidden');
-                        console.log("Dashboard displayed");
+                        debugLog("Dashboard should now be visible");
                     } else {
-                        console.log("No user, redirecting to login");
+                        debugLog("No user, redirecting to login");
                         window.location.href = 'https://dev.wrestling.systems/login';
                     }
                 } catch (error) {
-                    console.error("Critical error in auth state handler:", error);
+                    debugError("Critical error in auth state handler", error);
                     // Even on critical error, hide loader
                     loaderContainer.classList.add('hidden');
                     dashboardContent.classList.remove('hidden');
@@ -318,25 +362,35 @@
         }
 
         async function populateUserInfo(user) {
+            debugLog("populateUserInfo called for user", user.email);
             const userRef = doc(db, "users", user.uid);
             try {
+                debugLog("Getting user document from Firestore");
                 const docSnap = await getDoc(userRef);
                 if (docSnap.exists() && docSnap.data().firstName) {
                     userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
+                    debugLog("Set display name from Firestore", docSnap.data().firstName);
                 } else { 
                     userDisplayName.textContent = user.displayName || user.email; 
+                    debugLog("Set display name from Auth", user.displayName || user.email);
                 }
             } catch (error) { 
-                console.error("Error fetching user data:", error);
+                debugError("Error fetching user data", error);
                 // Fallback to Firebase Auth data if Firestore fails
                 userDisplayName.textContent = user.displayName || user.email || 'User';
             }
             
             // Always set these regardless of Firestore success/failure
             const providerId = user.providerData[0]?.providerId || 'password';
+            debugLog("Provider ID", providerId);
+            
+            debugLog("About to call getProviderIcon");
             providerIconContainer.innerHTML = getProviderIcon(providerId);
+            debugLog("getProviderIcon completed");
+            
             userEmailDisplay.textContent = user.email;
             userStatusDiv.classList.remove('hidden');
+            debugLog("User info population completed");
 
             // Check email verification status
             if (!user.emailVerified && providerId === 'password') {
@@ -695,37 +749,41 @@
         }
 
         // Event Listeners
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM loaded, initializing Firebase...");
-            console.log("Loader element:", loaderContainer);
-            console.log("Dashboard element:", dashboardContent);
+        document.addEventListener('DOMContentLoaded', async () => {
+            debugLog("DOM loaded, initializing Firebase");
+            debugLog("Loader element exists", !!loaderContainer);
+            debugLog("Dashboard element exists", !!dashboardContent);
             
-            // Add timeout to prevent infinite loading - reduced to 5 seconds for testing
+            // Add timeout for debugging
             const timeout = setTimeout(() => {
-                console.warn("Firebase initialization timeout - hiding loader");
+                debugError("Firebase initialization timeout");
                 if (loaderContainer) {
                     loaderContainer.classList.add('hidden');
                 }
                 document.body.innerHTML = `
                     <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
                         <div class="bg-yellow-900/30 border border-yellow-500/30 rounded-lg p-8 max-w-md">
-                            <h2 class="text-yellow-300 font-bold text-xl mb-4">Connection Timeout</h2>
-                            <p class="text-yellow-200 mb-4">Firebase is taking too long to connect. Check console for details.</p>
+                            <h2 class="text-yellow-300 font-bold text-xl mb-4">Debug Timeout</h2>
+                            <p class="text-yellow-200 mb-4">Check the debug log for details about what failed.</p>
                             <button onclick="window.location.reload()" class="mt-4 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
                                 Try Again
                             </button>
                         </div>
                     </div>
                 `;
-            }, 5000); // 5 second timeout for debugging
+            }, 10000); // 10 second timeout for debugging
             
-            initFirebase().then(() => {
+            try {
+                debugLog("Calling initFirebase()");
+                await initFirebase();
                 clearTimeout(timeout);
-                console.log("Firebase initialized successfully");
-            }).catch(error => {
+                debugLog("Firebase initialization completed successfully");
+            } catch (error) {
                 clearTimeout(timeout);
-                console.error("Firebase initialization failed:", error);
-                loaderContainer.classList.add('hidden');
+                debugError("Firebase initialization failed", error);
+                if (loaderContainer) {
+                    loaderContainer.classList.add('hidden');
+                }
                 document.body.innerHTML = `
                     <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
                         <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-8 max-w-md">
@@ -738,7 +796,7 @@
                         </div>
                     </div>
                 `;
-            });
+            }
             
             signOutBtn.addEventListener('click', () => signOut(auth));
             saveAthleteBtn.addEventListener('click', handleAddAthlete);
