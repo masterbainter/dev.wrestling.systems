@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Debug - Wrestling.Systems</title>
+    <style>
+        body { background: #1a1a1a; color: white; font-family: Arial; padding: 20px; }
+        .debug { background: #333; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .error { background: #600; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard Debug Version</h1>
+    <div id="debug-output"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        const output = document.getElementById('debug-output');
+        
+        function log(message, isError = false) {
+            console.log(message);
+            const div = document.createElement('div');
+            div.className = 'debug' + (isError ? ' error' : '');
+            div.textContent = message;
+            output.appendChild(div);
+        }
+        
+        log("🔬 DIAGNOSTIC VERSION - TESTING FIREBASE CONNECTION");
+        
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBGj8gW-l9VYWxGKQUNdx4qZuGDOJ8X3J8",
+            authDomain: "wrestling-systems-b7f63.firebaseapp.com",
+            projectId: "wrestling-systems-b7f63",
+            storageBucket: "wrestling-systems-b7f63.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456789"
+        };
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+            log("✅ Firebase initialized successfully");
+            
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    log(`✅ User logged in: ${user.email} (${user.uid})`);
+                    
+                    try {
+                        // Test 1: Get all athletes
+                        log("🔍 Testing: Get ALL athletes from database...");
+                        const allAthletes = await db.collection('athletes').get();
+                        log(`📊 Total athletes in database: ${allAthletes.size}`);
+                        
+                        if (!allAthletes.empty) {
+                            allAthletes.docs.forEach((doc, i) => {
+                                const data = doc.data();
+                                log(`👤 Athlete ${i+1}: ${data.firstName} ${data.lastName} (parentUserId: ${data.parentUserId})`);
+                                log(`🎯 Matches current user: ${data.parentUserId === user.uid}`);
+                            });
+                        }
+                        
+                        // Test 2: Query for current user's athletes
+                        log("🔍 Testing: Query athletes for current user...");
+                        const userAthletes = await db.collection('athletes').where('parentUserId', '==', user.uid).get();
+                        log(`📊 Athletes for current user: ${userAthletes.size}`);
+                        
+                        if (!userAthletes.empty) {
+                            userAthletes.docs.forEach((doc, i) => {
+                                const data = doc.data();
+                                log(`✅ User's Athlete ${i+1}: ${data.firstName} ${data.lastName}`);
+                            });
+                        } else {
+                            log("❌ NO athletes found for current user", true);
+                        }
+                        
+                    } catch (error) {
+                        log(`❌ ERROR: ${error.message}`, true);
+                    }
+                    
+                } else {
+                    log("❌ User not logged in", true);
+                }
+            });
+            
+        } catch (error) {
+            log(`❌ Firebase initialization error: ${error.message}`, true);
+        }
+    </script>
+</body>
+</html>
