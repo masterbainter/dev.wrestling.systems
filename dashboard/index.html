@@ -72,6 +72,24 @@
             </div>
             
             <div id="dashboard-content" class="hidden">
+                <!-- Email Verification Banner -->
+                <div id="email-verification-banner" class="hidden mb-6 p-4 bg-yellow-900/30 border-2 border-yellow-500/50 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 text-yellow-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold text-yellow-300">Email Verification Required</h3>
+                                <p class="text-yellow-200 text-sm">Please verify your email address to access all features. Check your inbox for the verification link.</p>
+                            </div>
+                        </div>
+                        <button id="resend-verification-btn" class="text-yellow-300 hover:text-yellow-200 text-sm font-medium">
+                            Resend Email
+                        </button>
+                    </div>
+                </div>
+
                 <h1 class="text-3xl sm:text-4xl font-bold text-white text-center mb-6">Athlete Dashboard</h1>
 
                 <!-- Your Athletes Section -->
@@ -157,7 +175,7 @@
     <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // DOM Elements
@@ -174,6 +192,8 @@
         const saveAthleteBtn = document.getElementById('save-athlete-btn');
         const addAthleteError = document.getElementById('add-athlete-error');
         const migrateDataBtn = document.getElementById('migrate-data-btn');
+        const emailVerificationBanner = document.getElementById('email-verification-banner');
+        const resendVerificationBtn = document.getElementById('resend-verification-btn');
 
         // Form inputs
         const athleteFirstName = document.getElementById('athlete-first-name');
@@ -224,6 +244,13 @@
                 providerIconContainer.innerHTML = getProviderIcon(providerId);
                 userEmailDisplay.textContent = user.email;
                 userStatusDiv.classList.remove('hidden');
+
+                // Check email verification status
+                if (!user.emailVerified && providerId === 'password') {
+                    emailVerificationBanner.classList.remove('hidden');
+                } else {
+                    emailVerificationBanner.classList.add('hidden');
+                }
             } catch (error) { 
                 console.error("Error fetching user data:", error); 
             }
@@ -522,6 +549,25 @@
             }
         };
 
+        // Resend verification email
+        async function resendVerificationEmail() {
+            try {
+                const user = auth.currentUser;
+                if (user) {
+                    await sendEmailVerification(user);
+                    resendVerificationBtn.textContent = 'Sent!';
+                    resendVerificationBtn.disabled = true;
+                    setTimeout(() => {
+                        resendVerificationBtn.textContent = 'Resend Email';
+                        resendVerificationBtn.disabled = false;
+                    }, 30000); // 30 second cooldown
+                }
+            } catch (error) {
+                console.error("Error sending verification email:", error);
+                alert('Failed to send verification email. Please try again.');
+            }
+        }
+
         // Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
             initFirebase();
@@ -529,6 +575,7 @@
             signOutBtn.addEventListener('click', () => signOut(auth));
             saveAthleteBtn.addEventListener('click', handleAddAthlete);
             migrateDataBtn.addEventListener('click', migrateExistingData);
+            resendVerificationBtn.addEventListener('click', resendVerificationEmail);
         });
     </script>
 </body>
