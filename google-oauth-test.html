@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google OAuth Test</title>
+    <style>
+        body { background: #1a1a1a; color: white; padding: 20px; font-family: Arial; }
+        .step { background: #333; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #063; border-left: 4px solid #0a4; }
+        .error { background: #600; border-left: 4px solid #a04; }
+        .info { background: #036; border-left: 4px solid #04a; }
+        button { padding: 10px 20px; margin: 10px; background: #0a4; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0c5; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Google OAuth Test</h1>
+    <div id="debug-output"></div>
+    <button onclick="testGoogleSignIn()">🔐 Test Google Sign In</button>
+    <button onclick="testSignOut()">🚪 Sign Out</button>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <script>
+        const output = document.getElementById('debug-output');
+        
+        function log(message, type = 'info') {
+            console.log(message);
+            const div = document.createElement('div');
+            div.className = 'step ' + type;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            output.appendChild(div);
+        }
+        
+        log("🚀 Starting Google OAuth Test", 'info');
+        
+        // Firebase config - DEVELOPMENT PROJECT
+        const firebaseConfig = {
+            apiKey: "AIzaSyDUKOn5OKq9XYwJF-loJ-1E8_P4jaCvnUM",
+            authDomain: "wrestling-systems-dev.firebaseapp.com",
+            projectId: "wrestling-systems-dev",
+            storageBucket: "wrestling-systems-dev.firebasestorage.app",
+            messagingSenderId: "115633693255",
+            appId: "1:115633693255:web:3ddd3679f2038438c14762"
+        };
+        
+        let auth;
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            log(`✅ Firebase initialized - Project: ${firebaseConfig.projectId}`, 'success');
+            
+            // Listen for auth state changes
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    log(`✅ Signed in as: ${user.email} (${user.uid})`, 'success');
+                    log(`📧 Email verified: ${user.emailVerified}`, user.emailVerified ? 'success' : 'error');
+                    log(`🔐 Provider: ${user.providerData[0]?.providerId || 'email'}`, 'info');
+                } else {
+                    log("❌ Not signed in", 'error');
+                }
+            });
+            
+        } catch (error) {
+            log(`💥 Firebase initialization error: ${error.message}`, 'error');
+        }
+        
+        async function testGoogleSignIn() {
+            log("🔄 Testing Google Sign In...", 'info');
+            
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                log("✅ Google provider created", 'success');
+                
+                const result = await auth.signInWithPopup(provider);
+                log(`✅ Google sign-in successful! User: ${result.user.email}`, 'success');
+                
+            } catch (error) {
+                log(`❌ Google sign-in error: ${error.code} - ${error.message}`, 'error');
+                
+                if (error.code === 'auth/unauthorized-domain') {
+                    log("💡 Domain not authorized. Check Firebase Console → Authentication → Settings → Authorized domains", 'error');
+                } else if (error.code === 'auth/popup-blocked') {
+                    log("💡 Popup was blocked by browser. Allow popups and try again.", 'error');
+                }
+            }
+        }
+        
+        async function testSignOut() {
+            try {
+                await auth.signOut();
+                log("✅ Signed out successfully", 'success');
+            } catch (error) {
+                log(`❌ Sign out error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
