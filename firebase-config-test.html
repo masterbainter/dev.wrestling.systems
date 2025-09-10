@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Config Test</title>
+    <style>body { background: #1a1a1a; color: white; padding: 20px; font-family: Arial; }</style>
+</head>
+<body>
+    <h1>🔧 Firebase Configuration Test</h1>
+    <div id="results"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script>
+        const results = document.getElementById('results');
+        
+        // Test different Firebase project configurations
+        const configs = {
+            production: {
+                name: "wrestlingsystems (PRODUCTION - DO NOT USE)",
+                config: {
+                    apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
+                    authDomain: "auth.wrestling.systems", 
+                    projectId: "wrestlingsystems",
+                    storageBucket: "wrestlingsystems.appspot.com",
+                    messagingSenderId: "255692661115",
+                    appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde"
+                }
+            },
+            development: {
+                name: "wrestling-systems-b7f63 (DEVELOPMENT)",
+                config: {
+                    apiKey: "AIzaSyBGj8gW-l9VYWxGKQUNdx4qZuGDOJ8X3J8",
+                    authDomain: "wrestling-systems-b7f63.firebaseapp.com",
+                    projectId: "wrestling-systems-b7f63", 
+                    storageBucket: "wrestling-systems-b7f63.appspot.com",
+                    messagingSenderId: "123456789012",
+                    appId: "1:123456789012:web:abcdef123456789"
+                }
+            }
+        };
+        
+        async function testConfig(name, config) {
+            try {
+                const app = firebase.initializeApp(config, name);
+                results.innerHTML += `<div style="background: #063; padding: 10px; margin: 10px 0;">✅ ${name}: Connection successful</div>`;
+                return true;
+            } catch (error) {
+                results.innerHTML += `<div style="background: #600; padding: 10px; margin: 10px 0;">❌ ${name}: ${error.message}</div>`;
+                return false;
+            }
+        }
+        
+        // Test both configurations
+        testConfig(configs.production.name, configs.production.config);
+        testConfig(configs.development.name, configs.development.config);
+        
+        results.innerHTML += `<div style="background: #330; padding: 10px; margin: 20px 0;"><strong>Recommendation:</strong> We should use the DEVELOPMENT project for dev.wrestling.systems to keep production safe!</div>`;
+    </script>
+</body>
+</html>

@@ -33,23 +33,15 @@
             results.appendChild(div);
         }
         
-        // Firebase config - try both project IDs
-        const firebaseConfigWrestling = {
-            apiKey: "AIzaSyBGj8gW-l9VYWxGKQUNdx4qZuGDOJ8X3J8",
-            authDomain: "wrestling-systems-b7f63.firebaseapp.com",
-            projectId: "wrestling-systems-b7f63",
-            storageBucket: "wrestling-systems-b7f63.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef123456789"
-        };
-        
-        const firebaseConfigSystem = {
-            apiKey: "AIzaSyBGj8gW-l9VYWxGKQUNdx4qZuGDOJ8X3J8", 
-            authDomain: "wrestlingsystems.firebaseapp.com",
+        // Firebase config - SAME AS DASHBOARD
+        const firebaseConfig = {
+            apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
+            authDomain: "auth.wrestling.systems",
             projectId: "wrestlingsystems",
             storageBucket: "wrestlingsystems.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef123456789"
+            messagingSenderId: "255692661115",
+            appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
+            measurementId: "G-E52GDENT1E"
         };
 
         let app, auth, db;
@@ -60,28 +52,18 @@
             addResult('🚀 Starting Firestore Security Rules Test', 'loading');
             
             try {
-                // Test 1: Check which Firebase project is configured
+                // Test 1: Initialize Firebase with same config as dashboard
                 addResult('📋 TEST 1: Firebase Configuration Check', 'info');
                 
-                // Try wrestling-systems-b7f63 first
                 try {
-                    app = firebase.initializeApp(firebaseConfigWrestling);
+                    app = firebase.initializeApp(firebaseConfig);
                     auth = firebase.auth();
                     db = firebase.firestore();
-                    addResult('✅ Connected to wrestling-systems-b7f63 project', 'success');
+                    addResult(`✅ Connected to ${firebaseConfig.projectId} project`, 'success');
+                    addResult(`📧 Auth domain: ${firebaseConfig.authDomain}`, 'info');
                 } catch (error) {
-                    addResult('❌ Failed to connect to wrestling-systems-b7f63: ' + error.message, 'error');
-                    
-                    // Try wrestlingsystems
-                    try {
-                        app = firebase.initializeApp(firebaseConfigSystem);
-                        auth = firebase.auth();
-                        db = firebase.firestore();
-                        addResult('✅ Connected to wrestlingsystems project', 'success');
-                    } catch (error2) {
-                        addResult('❌ Failed to connect to wrestlingsystems: ' + error2.message, 'error');
-                        return;
-                    }
+                    addResult('❌ Failed to initialize Firebase: ' + error.message, 'error');
+                    return;
                 }
                 
                 // Test 2: Check authentication state
