@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing Guide - Wrestling.Systems</title>
+
+    <!-- Favicon Links -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://assets.wrestling.systems/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://assets.wrestling.systems/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://assets.wrestling.systems/favicon-16x16.png">
+    <link rel="shortcut icon" href="https://assets.wrestling.systems/favicon.ico">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Gold Color */
+        .bg-gold-500 { background-color: #D4AF37; }
+        .hover\:bg-gold-600:hover { background-color: #C09B2D; }
+        .text-gold-300 { color: #E6C75E; }
+        .border-gold-500 { border-color: #D4AF37; }
+        
+        /* Code blocks */
+        pre {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        
+        /* Step numbering */
+        .step-number {
+            background-color: #D4AF37;
+            color: #000;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 0.75rem;
+        }
+    </style>
+</head>
+<body class="bg-black text-gray-200 antialiased">
+
+    <!-- Header -->
+    <div class="bg-gray-900 border-b border-gray-800">
+        <div class="max-w-4xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="https://dev.wrestling.systems">
+                        <img src="https://assets.wrestling.systems/logo-gemini2.png" alt="Wrestling.Systems Logo" class="w-32">
+                    </a>
+                    <h1 class="text-2xl font-bold text-white">Testing Guide</h1>
+                </div>
+                <a href="https://dev.wrestling.systems/quick-test/" class="bg-gold-500 hover:bg-gold-600 text-black px-4 py-2 rounded-md font-medium transition-colors">
+                    ← Back to Quick Test Hub
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto px-6 py-8">
+        
+        <!-- Overview -->
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-white mb-4">🧪 Wrestling.Systems Complete Workflow Testing Guide</h2>
+            <div class="bg-blue-900/30 border border-blue-500/30 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-blue-300 mb-3">Overview</h3>
+                <p class="text-gray-300">This guide walks you through testing the complete enhanced wrestling.systems workflow:</p>
+                <p class="text-gold-300 font-semibold mt-2">Athlete Creation → Template Building → Workout Execution</p>
+            </div>
+        </div>
+
+        <!-- New Features -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-6">🚀 New Features to Test</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Enhanced Dashboard -->
+                <div class="bg-green-900/30 border border-green-500/30 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-green-300 mb-3">1. Enhanced Athlete Dashboard</h3>
+                    <p class="text-sm text-gray-300 mb-3"><strong>URL:</strong> <a href="https://dev.wrestling.systems/dashboard-enhanced/" class="text-gold-300 hover:underline">dashboard-enhanced/</a></p>
+                    <p class="text-sm text-gray-300">Rich athlete profiles, relationship tracking, age calculation, legacy migration</p>
+                </div>
+
+                <!-- Workout Builder -->
+                <div class="bg-blue-900/30 border border-blue-500/30 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-blue-300 mb-3">2. Workout Template Builder</h3>
+                    <p class="text-sm text-gray-300 mb-3"><strong>URL:</strong> <a href="https://dev.wrestling.systems/workout-builder/" class="text-gold-300 hover:underline">workout-builder/</a></p>
+                    <p class="text-sm text-gray-300">Categories → Programs → Workouts → Templates hierarchy</p>
+                </div>
+
+                <!-- Rep Down App -->
+                <div class="bg-yellow-900/30 border border-yellow-500/30 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-yellow-300 mb-3">3. Existing Rep Down App</h3>
+                    <p class="text-sm text-gray-300 mb-3"><strong>URL:</strong> <a href="https://dev.wrestling.systems/repdown/" class="text-gold-300 hover:underline">repdown/</a></p>
+                    <p class="text-sm text-gray-300">Uses enhanced athlete profiles for workout execution</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Testing Workflow -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-6">🔥 Complete Testing Workflow</h2>
+            
+            <!-- Phase 1 -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-green-300 mb-4">Phase 1: Enhanced Athlete Management</h3>
+                
+                <div class="bg-gray-800 rounded-lg p-6 mb-6">
+                    <h4 class="text-lg font-semibold text-white mb-4">
+                        <span class="step-number">1</span>Test Enhanced Dashboard
+                    </h4>
+                    <div class="bg-gray-900 rounded p-4">
+                        <ol class="space-y-2 text-sm text-gray-300">
+                            <li>1. Go to: <a href="https://dev.wrestling.systems/dashboard-enhanced/" class="text-gold-300 hover:underline">https://dev.wrestling.systems/dashboard-enhanced/</a></li>
+                            <li>2. Sign in with your Firebase account</li>
+                            <li>3. Create a new athlete with:
+                                <ul class="ml-4 mt-2 space-y-1">
+                                    <li>- First Name: "TestAthlete"</li>
+                                    <li>- Last Name: "Smith"</li>
+                                    <li>- Birth Date: "2010-05-15" (should show age)</li>
+                                    <li>- Relationship: "Son"</li>
+                                </ul>
+                            </li>
+                            <li>4. Verify athlete card shows:
+                                <ul class="ml-4 mt-2 space-y-1">
+                                    <li>✅ Full name with calculated age</li>
+                                    <li>✅ Relationship type</li>
+                                    <li>✅ Permissions list</li>
+                                    <li>✅ Added date</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h4 class="text-lg font-semibold text-white mb-4">
+                        <span class="step-number">2</span>Test Legacy Migration
+                    </h4>
+                    <div class="bg-gray-900 rounded p-4">
+                        <ol class="space-y-2 text-sm text-gray-300">
+                            <li>1. Look for athletes with "Legacy" badges</li>
+                            <li>2. Click "Migrate Existing Athletes" button</li>
+                            <li>3. Verify legacy athletes are converted to enhanced format</li>
+                            <li>4. Check that migrated athletes now show relationship/permissions</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2 -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-blue-300 mb-4">Phase 2: Workout Template Building</h3>
+                
+                <div class="bg-gray-800 rounded-lg p-6 mb-6">
+                    <h4 class="text-lg font-semibold text-white mb-4">
+                        <span class="step-number">3</span>Test Category Creation
+                    </h4>
+                    <div class="bg-gray-900 rounded p-4">
+                        <ol class="space-y-2 text-sm text-gray-300">
+                            <li>1. Go to: <a href="https://dev.wrestling.systems/workout-builder/" class="text-gold-300 hover:underline">https://dev.wrestling.systems/workout-builder/</a></li>
+                            <li>2. Sign in and go to "Categories" tab</li>
+                            <li>3. Create category:
+                                <ul class="ml-4 mt-2 space-y-1">
+                                    <li>- Name: "Test Conditioning"</li>
+                                    <li>- Description: "Testing cardiovascular workouts"</li>
+                                </ul>
+                            </li>
+                            <li>4. Verify category appears in list</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h4 class="text-lg font-semibold text-white mb-4">
+                        <span class="step-number">4</span>Test Template Creation
+                    </h4>
+                    <div class="bg-gray-900 rounded p-4">
+                        <ol class="space-y-2 text-sm text-gray-300">
+                            <li>1. Create Program → Workout → Template following the hierarchy</li>
+                            <li>2. Add exercises: "pushups", "squats", "burpees"</li>
+                            <li>3. Set Workout Type: "Rep Down (Decreasing)"</li>
+                            <li>4. Configure Starting Reps: 8, Ending Reps: 1</li>
+                            <li>5. Verify template shows with correct hierarchy breadcrumbs</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 3 -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-yellow-300 mb-4">Phase 3: Workout Execution Integration</h3>
+                
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h4 class="text-lg font-semibold text-white mb-4">
+                        <span class="step-number">5</span>Test Rep Down with Enhanced Athletes
+                    </h4>
+                    <div class="bg-gray-900 rounded p-4">
+                        <ol class="space-y-2 text-sm text-gray-300">
+                            <li>1. Go to: <a href="https://dev.wrestling.systems/repdown/" class="text-gold-300 hover:underline">https://dev.wrestling.systems/repdown/</a></li>
+                            <li>2. Sign in</li>
+                            <li>3. Verify athlete selection shows enhanced athletes:
+                                <ul class="ml-4 mt-2 space-y-1">
+                                    <li>✅ Full names (not just first names)</li>
+                                    <li>✅ Enhanced athlete cards</li>
+                                </ul>
+                            </li>
+                            <li>4. Select your test athlete</li>
+                            <li>5. Run a workout with default exercises</li>
+                            <li>6. Complete the workout</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Criteria -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-6">🎯 Success Criteria</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="bg-green-900/30 border border-green-500/30 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-green-300 mb-3">✅ Phase 1 Success</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li>• Enhanced athletes created with full metadata</li>
+                        <li>• Legacy migration works (if applicable)</li>
+                        <li>• Age calculation and relationship tracking work</li>
+                    </ul>
+                </div>
+
+                <div class="bg-blue-900/30 border border-blue-500/30 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-blue-300 mb-3">✅ Phase 2 Success</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li>• Complete template hierarchy created</li>
+                        <li>• Template includes exercises and workout structure</li>
+                        <li>• All data correctly stored in Firestore</li>
+                    </ul>
+                </div>
+
+                <div class="bg-yellow-900/30 border border-yellow-500/30 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-yellow-300 mb-3">✅ Phase 3 Success</h3>
+                    <ul class="space-y-2 text-sm text-gray-300">
+                        <li>• Rep Down app uses enhanced athletes</li>
+                        <li>• Workout completion stores data properly</li>
+                        <li>• Data flows between all components</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issues to Watch For -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-6">⚠️ Issues to Watch For</h2>
+            <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-red-300 mb-3">Common Problems:</h3>
+                <ul class="space-y-2 text-sm text-gray-300">
+                    <li>1. <strong>Legacy Data Conflicts</strong> - Old array vs new object format</li>
+                    <li>2. <strong>Missing Firebase Rules</strong> - Permissions for template collections</li>
+                    <li>3. <strong>Browser Caching</strong> - Clear cache if seeing old data</li>
+                    <li>4. <strong>Authentication State</strong> - Make sure signed in across all pages</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="text-center">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="https://dev.wrestling.systems/dashboard-enhanced/" class="bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-md font-medium transition-colors">
+                    Start Testing: Dashboard
+                </a>
+                <a href="https://dev.wrestling.systems/workout-builder/" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-md font-medium transition-colors">
+                    Start Testing: Builder
+                </a>
+                <a href="https://dev.wrestling.systems/repdown/" class="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-3 rounded-md font-medium transition-colors">
+                    Start Testing: Rep Down
+                </a>
+                <a href="https://console.firebase.google.com/project/wrestlingsystems/firestore" target="_blank" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-md font-medium transition-colors">
+                    Firebase Console
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-gray-900 border-t border-gray-800 mt-12">
+        <div class="max-w-4xl mx-auto px-6 py-6 text-center">
+            <p class="text-gray-400">Ready to test the complete wrestling.systems workflow! 🏗️💪</p>
+            <a href="https://dev.wrestling.systems/quick-test/" class="text-gold-300 hover:underline mt-2 inline-block">
+                ← Back to Quick Test Hub
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>
