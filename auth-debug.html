@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug - Wrestling Systems</title>
+    <style>
+        body { background: #1a1a1a; color: white; padding: 20px; font-family: Arial; }
+        .step { background: #333; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #063; border-left: 4px solid #0a4; }
+        .error { background: #600; border-left: 4px solid #a04; }
+        .info { background: #036; border-left: 4px solid #04a; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Firebase Auth Debug</h1>
+    <div id="debug-output"></div>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <script>
+        const output = document.getElementById('debug-output');
+        
+        function log(message, type = 'info') {
+            console.log(message);
+            const div = document.createElement('div');
+            div.className = 'step ' + type;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            output.appendChild(div);
+        }
+        
+        log("🚀 Starting Firebase Auth Debug", 'info');
+        
+        // Firebase config - DEVELOPMENT PROJECT
+        const firebaseConfig = {
+            apiKey: "AIzaSyDUKOn5OKq9XYwJF-loJ-1E8_P4jaCvnUM",
+            authDomain: "wrestling-systems-dev.firebaseapp.com",
+            projectId: "wrestling-systems-dev",
+            storageBucket: "wrestling-systems-dev.firebasestorage.app",
+            messagingSenderId: "115633693255",
+            appId: "1:115633693255:web:3ddd3679f2038438c14762"
+        };
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            log(`✅ Firebase initialized - Project: ${firebaseConfig.projectId}`, 'success');
+            
+            // Check initial auth state
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+                log(`👤 Initial user state: SIGNED IN as ${currentUser.email} (${currentUser.uid})`, 'success');
+            } else {
+                log("❌ Initial user state: NOT SIGNED IN", 'error');
+            }
+            
+            // Listen for auth state changes
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    log(`🔄 Auth state changed: SIGNED IN as ${user.email} (${user.uid})`, 'success');
+                    log(`📧 Email verified: ${user.emailVerified}`, user.emailVerified ? 'success' : 'error');
+                    log(`🔐 Provider: ${user.providerData[0]?.providerId || 'email'}`, 'info');
+                } else {
+                    log("🔄 Auth state changed: SIGNED OUT", 'error');
+                }
+            });
+            
+            // Test auth persistence
+            log(`🗄️ Auth persistence: ${auth.app.options.authDomain}`, 'info');
+            
+        } catch (error) {
+            log(`💥 Firebase initialization error: ${error.message}`, 'error');
+        }
+    </script>
+</body>
+</html>
