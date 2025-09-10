@@ -105,9 +105,23 @@
                     </div>
                 </div>
 
-                <!-- Add a New Athlete Section -->
-                <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-gold-300 mb-4">Add a New Athlete</h2>
+                <!-- Add Wrestler Button -->
+                <div class="mb-8 text-center">
+                    <button id="show-add-athlete-btn" class="bg-gold-500 hover:bg-gold-600 text-white font-bold py-3 px-6 rounded-md transition-colors">
+                        Add Wrestler
+                    </button>
+                </div>
+
+                <!-- Add a New Athlete Section (Initially Hidden) -->
+                <div id="add-athlete-section" class="mb-8 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gold-300">Add a New Wrestler</h2>
+                        <button id="cancel-add-athlete-btn" class="text-gray-400 hover:text-gray-300">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
                     <div class="p-4 bg-black/30 rounded-lg">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
@@ -119,18 +133,26 @@
                                 <input type="text" id="athlete-last-name" placeholder="e.g., Smith" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div>
                                 <label for="athlete-birth-date" class="block text-sm font-medium text-gray-300 mb-2">Birth Date (Optional)</label>
                                 <input type="date" id="athlete-birth-date" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
                             </div>
                             <div>
-                                <label for="athlete-relationship" class="block text-sm font-medium text-gray-300 mb-2">Relationship</label>
+                                <label for="athlete-relationship" class="block text-sm font-medium text-gray-300 mb-2">Relationship to You</label>
                                 <select id="athlete-relationship" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
                                     <option value="son">Son</option>
                                     <option value="daughter">Daughter</option>
+                                    <option value="student">Student</option>
                                     <option value="athlete">Athlete</option>
                                     <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="athlete-gender" class="block text-sm font-medium text-gray-300 mb-2">Gender</label>
+                                <select id="athlete-gender" class="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-gold-500 focus:border-gold-500">
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
                                 </select>
                             </div>
                         </div>
@@ -194,12 +216,16 @@
         const migrateDataBtn = document.getElementById('migrate-data-btn');
         const emailVerificationBanner = document.getElementById('email-verification-banner');
         const resendVerificationBtn = document.getElementById('resend-verification-btn');
+        const showAddAthleteBtn = document.getElementById('show-add-athlete-btn');
+        const addAthleteSection = document.getElementById('add-athlete-section');
+        const cancelAddAthleteBtn = document.getElementById('cancel-add-athlete-btn');
 
         // Form inputs
         const athleteFirstName = document.getElementById('athlete-first-name');
         const athleteLastName = document.getElementById('athlete-last-name');
         const athleteBirthDate = document.getElementById('athlete-birth-date');
         const athleteRelationship = document.getElementById('athlete-relationship');
+        const athleteGender = document.getElementById('athlete-gender');
 
         // Firebase State
         let auth, db, userId;
@@ -368,6 +394,7 @@
             const lastName = athleteLastName.value.trim();
             const birthDate = athleteBirthDate.value;
             const relationship = athleteRelationship.value;
+            const gender = athleteGender.value;
 
             addAthleteError.textContent = '';
 
@@ -386,6 +413,7 @@
                     name: `${firstName} ${lastName}`.trim(),
                     parentUserId: userId,
                     birthDate: birthDate || null,
+                    gender: gender,
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                     
@@ -447,6 +475,11 @@
                 athleteLastName.value = '';
                 athleteBirthDate.value = '';
                 athleteRelationship.value = 'son';
+                athleteGender.value = 'male';
+
+                // Hide the form after successful creation
+                addAthleteSection.classList.add('hidden');
+                showAddAthleteBtn.classList.remove('hidden');
 
                 // Refresh display
                 await fetchAndDisplayAthletes();
@@ -568,6 +601,24 @@
             }
         }
 
+        // Show/hide add athlete form
+        function showAddAthleteForm() {
+            addAthleteSection.classList.remove('hidden');
+            showAddAthleteBtn.classList.add('hidden');
+        }
+
+        function hideAddAthleteForm() {
+            addAthleteSection.classList.add('hidden');
+            showAddAthleteBtn.classList.remove('hidden');
+            // Clear form when canceling
+            athleteFirstName.value = '';
+            athleteLastName.value = '';
+            athleteBirthDate.value = '';
+            athleteRelationship.value = 'son';
+            athleteGender.value = 'male';
+            addAthleteError.textContent = '';
+        }
+
         // Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
             initFirebase();
@@ -576,6 +627,8 @@
             saveAthleteBtn.addEventListener('click', handleAddAthlete);
             migrateDataBtn.addEventListener('click', migrateExistingData);
             resendVerificationBtn.addEventListener('click', resendVerificationEmail);
+            showAddAthleteBtn.addEventListener('click', showAddAthleteForm);
+            cancelAddAthleteBtn.addEventListener('click', hideAddAthleteForm);
         });
     </script>
 </body>
