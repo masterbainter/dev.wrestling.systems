@@ -7,11 +7,11 @@ This guide walks you through testing the complete enhanced wrestling.systems wor
 ## **🚀 New Features to Test**
 
 ### **1. Enhanced Athlete Dashboard**
-- **URL:** `https://dev.wrestling.systems/dashboard-enhanced.html`
+- **URL:** `https://dev.wrestling.systems/dashboard-enhanced/`
 - **Features:** Rich athlete profiles, relationship tracking, age calculation, legacy migration
 
 ### **2. Workout Template Builder** 
-- **URL:** `https://dev.wrestling.systems/workout-builder.html`
+- **URL:** `https://dev.wrestling.systems/workout-builder/`
 - **Features:** Categories → Programs → Workouts → Templates hierarchy
 
 ### **3. Existing Rep Down App**
@@ -26,7 +26,7 @@ This guide walks you through testing the complete enhanced wrestling.systems wor
 
 #### **1.1 Test Enhanced Dashboard**
 ```
-1. Go to: https://dev.wrestling.systems/dashboard-enhanced.html
+1. Go to: https://dev.wrestling.systems/dashboard-enhanced/
 2. Sign in with your Firebase account
 3. Create a new athlete with:
    - First Name: "TestAthlete"
@@ -66,7 +66,7 @@ Check data structure:
 
 #### **2.1 Test Category Creation**
 ```
-1. Go to: https://dev.wrestling.systems/workout-builder.html
+1. Go to: https://dev.wrestling.systems/workout-builder/
 2. Sign in and go to "Categories" tab
 3. Create category:
    - Name: "Test Conditioning"
