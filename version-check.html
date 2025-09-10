@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Version Check</title>
+</head>
+<body style="background: black; color: white; font-family: monospace; padding: 20px;">
+    <h1>Version Check - Wrestling Systems</h1>
+    <p>This page shows the deployment status.</p>
+    <p id="timestamp"></p>
+    
+    <script>
+        document.getElementById('timestamp').textContent = 'Deployed at: ' + new Date().toISOString();
+        console.log('Version check page loaded at:', new Date().toISOString());
+        console.log('This confirms the site is updating');
+    </script>
+</body>
+</html>
