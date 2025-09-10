@@ -258,15 +258,14 @@
         waitForFirebase().then(() => {
             debugLog("Firebase available, initializing...");
             
-            // Firebase configuration
+            // Firebase configuration - DEVELOPMENT PROJECT (SAFE)
             const firebaseConfig = {
-                apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
-                authDomain: "auth.wrestling.systems",
-                projectId: "wrestlingsystems",
-                storageBucket: "wrestlingsystems.appspot.com",
-                messagingSenderId: "255692661115",
-                appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
-                measurementId: "G-E52GDENT1E"
+                apiKey: "AIzaSyDUKOn5OKq9XYwJF-loJ-1E8_P4jaCvnUM",
+                authDomain: "wrestling-systems-dev.firebaseapp.com",
+                projectId: "wrestling-systems-dev",
+                storageBucket: "wrestling-systems-dev.firebasestorage.app",
+                messagingSenderId: "115633693255",
+                appId: "1:115633693255:web:3ddd3679f2038438c14762"
             };
             
             // Initialize Firebase

@@ -2,13 +2,12 @@
 // This keeps development separate from production wrestlingsystems project
 
 const DEV_FIREBASE_CONFIG = {
-    // PLACEHOLDER - Replace with actual development project values
-    apiKey: "YOUR_DEV_API_KEY",
+    apiKey: "AIzaSyDUKOn5OKq9XYwJF-loJ-1E8_P4jaCvnUM",
     authDomain: "wrestling-systems-dev.firebaseapp.com",
-    projectId: "wrestling-systems-dev", 
-    storageBucket: "wrestling-systems-dev.appspot.com", 
-    messagingSenderId: "YOUR_DEV_SENDER_ID",
-    appId: "YOUR_DEV_APP_ID"
+    projectId: "wrestling-systems-dev",
+    storageBucket: "wrestling-systems-dev.firebasestorage.app",
+    messagingSenderId: "115633693255",
+    appId: "1:115633693255:web:3ddd3679f2038438c14762"
 };
 
 // Production Firebase Configuration (DO NOT USE FOR DEVELOPMENT)
