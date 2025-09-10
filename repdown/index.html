@@ -94,7 +94,7 @@
                 <div id="athlete-list" class="space-y-3 mb-6">
                     <p id="no-athletes-msg" class="text-gray-400 text-center py-4">
                         No athletes found. 
-                        <a href="https://dev.wrestling.systems/dashboard" class="text-gold-300 hover:underline font-semibold">Go to your Dashboard</a> 
+                        <a href="https://dev.wrestling.systems/dashboard-enhanced/" class="text-gold-300 hover:underline font-semibold">Go to your Dashboard</a> 
                         to add one.
                     </p>
                 </div>
@@ -305,14 +305,31 @@
             athleteListDiv.innerHTML = '';
             const userRef = doc(db, "users", userId);
             const userSnap = await getDoc(userRef);
-            if (!userSnap.exists() || !userSnap.data().managedAthletes || userSnap.data().managedAthletes.length === 0) {
+            if (!userSnap.exists() || !userSnap.data().managedAthletes) {
+                athleteListDiv.appendChild(noAthletesMsg);
+                noAthletesMsg.classList.remove('hidden');
+                return;
+            }
+            
+            const managedAthletes = userSnap.data().managedAthletes;
+            
+            // Handle both legacy array format and enhanced object format
+            let athleteIds = [];
+            if (Array.isArray(managedAthletes)) {
+                // Legacy format: managedAthletes is an array of IDs
+                athleteIds = managedAthletes;
+            } else if (typeof managedAthletes === 'object') {
+                // Enhanced format: managedAthletes is an object with IDs as keys
+                athleteIds = Object.keys(managedAthletes);
+            }
+            
+            if (athleteIds.length === 0) {
                 athleteListDiv.appendChild(noAthletesMsg);
                 noAthletesMsg.classList.remove('hidden');
                 return;
             }
             
             noAthletesMsg.classList.add('hidden');
-            const athleteIds = userSnap.data().managedAthletes;
             for (const athleteId of athleteIds) {
                 const athleteRef = doc(db, "athletes", athleteId);
                 const athleteSnap = await getDoc(athleteRef);
@@ -320,9 +337,12 @@
                     const athleteData = athleteSnap.data();
                     const athleteEl = document.createElement('div');
                     athleteEl.className = 'athlete-selectable w-full text-left font-semibold text-lg p-4 bg-gray-700/50 hover:bg-gray-700 rounded-md transition-all border-2 border-transparent cursor-pointer';
-                    athleteEl.textContent = athleteData.firstName;
+                    
+                    // Use enhanced name format (full name) or fallback to first name
+                    const displayName = athleteData.name || `${athleteData.firstName || ''} ${athleteData.lastName || ''}`.trim() || athleteData.firstName || 'Unnamed Athlete';
+                    athleteEl.textContent = displayName;
                     athleteEl.dataset.athleteId = athleteId;
-                    athleteEl.dataset.athleteName = athleteData.firstName;
+                    athleteEl.dataset.athleteName = displayName;
                     athleteEl.dataset.selected = 'false';
                     athleteEl.onclick = () => toggleAthleteSelection(athleteEl);
                     athleteListDiv.appendChild(athleteEl);
