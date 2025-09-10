@@ -94,7 +94,7 @@
                 <div id="athlete-list" class="space-y-3 mb-6">
                     <p id="no-athletes-msg" class="text-gray-400 text-center py-4">
                         No athletes found. 
-                        <a href="https://dev.wrestling.systems/dashboard-enhanced/" class="text-gold-300 hover:underline font-semibold">Go to your Dashboard</a> 
+                        <a href="https://dev.wrestling.systems/dashboard/" class="text-gold-300 hover:underline font-semibold">Go to your Dashboard</a> 
                         to add one.
                     </p>
                 </div>
@@ -679,7 +679,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initFirebase();
             signOutBtn.addEventListener('click', () => signOut(auth));
-            backToDashboardBtn.addEventListener('click', () => window.location.href = 'https://dev.wrestling.systems/dashboard-enhanced/');
+            backToDashboardBtn.addEventListener('click', () => window.location.href = 'https://dev.wrestling.systems/dashboard/');
             letsGoBtn.addEventListener('click', showSetupScreen);
             backToHubFromSetupBtn.addEventListener('click', showHubScreen);
             startBtn.addEventListener('click', startWorkout);
