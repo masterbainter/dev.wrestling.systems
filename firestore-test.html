@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Rules Test</title>
+    <style>
+        body { background: #1a1a1a; color: white; font-family: Arial; padding: 20px; }
+        .test { background: #333; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { background: #063; border-left: 5px solid #0a4; }
+        .error { background: #600; border-left: 5px solid #a04; }
+        .info { background: #036; border-left: 5px solid #04a; }
+        .loading { background: #630; border-left: 5px solid #a40; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Firestore Security Rules Test</h1>
+    <div id="test-results"></div>
+    <button onclick="runTests()" style="padding: 10px 20px; margin: 20px 0; background: #0a4; color: white; border: none; border-radius: 5px;">Run Tests</button>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        const results = document.getElementById('test-results');
+        
+        function addResult(message, type = 'info') {
+            console.log(message);
+            const div = document.createElement('div');
+            div.className = 'test ' + type;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        // Firebase config - try both project IDs
+        const firebaseConfigWrestling = {
+            apiKey: "AIzaSyBGj8gW-l9VYWxGKQUNdx4qZuGDOJ8X3J8",
+            authDomain: "wrestling-systems-b7f63.firebaseapp.com",
+            projectId: "wrestling-systems-b7f63",
+            storageBucket: "wrestling-systems-b7f63.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456789"
+        };
+        
+        const firebaseConfigSystem = {
+            apiKey: "AIzaSyBGj8gW-l9VYWxGKQUNdx4qZuGDOJ8X3J8", 
+            authDomain: "wrestlingsystems.firebaseapp.com",
+            projectId: "wrestlingsystems",
+            storageBucket: "wrestlingsystems.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456789"
+        };
+
+        let app, auth, db;
+        
+        async function runTests() {
+            results.innerHTML = '';
+            
+            addResult('🚀 Starting Firestore Security Rules Test', 'loading');
+            
+            try {
+                // Test 1: Check which Firebase project is configured
+                addResult('📋 TEST 1: Firebase Configuration Check', 'info');
+                
+                // Try wrestling-systems-b7f63 first
+                try {
+                    app = firebase.initializeApp(firebaseConfigWrestling);
+                    auth = firebase.auth();
+                    db = firebase.firestore();
+                    addResult('✅ Connected to wrestling-systems-b7f63 project', 'success');
+                } catch (error) {
+                    addResult('❌ Failed to connect to wrestling-systems-b7f63: ' + error.message, 'error');
+                    
+                    // Try wrestlingsystems
+                    try {
+                        app = firebase.initializeApp(firebaseConfigSystem);
+                        auth = firebase.auth();
+                        db = firebase.firestore();
+                        addResult('✅ Connected to wrestlingsystems project', 'success');
+                    } catch (error2) {
+                        addResult('❌ Failed to connect to wrestlingsystems: ' + error2.message, 'error');
+                        return;
+                    }
+                }
+                
+                // Test 2: Check authentication state
+                addResult('📋 TEST 2: Authentication State Check', 'info');
+                const user = auth.currentUser;
+                if (user) {
+                    addResult(`✅ User is authenticated: ${user.email} (${user.uid})`, 'success');
+                } else {
+                    addResult('❌ User is not authenticated', 'error');
+                    addResult('ℹ️ You need to be logged in to test Firestore rules', 'info');
+                    return;
+                }
+                
+                // Test 3: Test reading all athletes (should fail with proper rules)
+                addResult('📋 TEST 3: Test Reading All Athletes (Should Show Permission Error)', 'info');
+                try {
+                    const allAthletes = await db.collection('athletes').get();
+                    addResult(`⚠️ WARNING: Read all athletes succeeded (${allAthletes.size} documents) - Rules may be too permissive`, 'error');
+                } catch (error) {
+                    if (error.code === 'permission-denied') {
+                        addResult('✅ GOOD: Permission denied when reading all athletes (rules are working)', 'success');
+                    } else {
+                        addResult('❌ Unexpected error: ' + error.message, 'error');
+                    }
+                }
+                
+                // Test 4: Test reading user's own athletes
+                addResult('📋 TEST 4: Test Reading User\'s Own Athletes', 'info');
+                try {
+                    const userAthletes = await db.collection('athletes').where('parentUserId', '==', user.uid).get();
+                    addResult(`✅ Successfully read user's athletes: ${userAthletes.size} found`, 'success');
+                    
+                    if (userAthletes.size > 0) {
+                        userAthletes.forEach((doc, i) => {
+                            const data = doc.data();
+                            addResult(`   ${i+1}. ${data.firstName || 'Unknown'} ${data.lastName || 'Unknown'} (ID: ${doc.id})`, 'info');
+                        });
+                    } else {
+                        addResult('ℹ️ No athletes found for current user', 'info');
+                    }
+                } catch (error) {
+                    addResult('❌ Error reading user\'s athletes: ' + error.message, 'error');
+                }
+                
+                // Test 5: Test creating a new athlete
+                addResult('📋 TEST 5: Test Creating New Athlete', 'info');
+                try {
+                    const testAthlete = {
+                        firstName: 'Test',
+                        lastName: 'Athlete',
+                        age: 20,
+                        gender: 'male',
+                        relationship: 'child',
+                        parentUserId: user.uid,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        isTestData: true
+                    };
+                    
+                    const docRef = await db.collection('athletes').add(testAthlete);
+                    addResult(`✅ Successfully created test athlete with ID: ${docRef.id}`, 'success');
+                    
+                    // Clean up test data
+                    await docRef.delete();
+                    addResult('✅ Test athlete cleaned up', 'success');
+                    
+                } catch (error) {
+                    addResult('❌ Error creating test athlete: ' + error.message, 'error');
+                }
+                
+                addResult('🏁 Testing Complete!', 'success');
+                
+            } catch (error) {
+                addResult('💥 Test failed with error: ' + error.message, 'error');
+            }
+        }
+        
+        // Auto-run tests when authenticated
+        setTimeout(() => {
+            if (window.firebase && firebase.auth) {
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        addResult('🔐 User authenticated, ready to run tests', 'info');
+                    }
+                });
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
