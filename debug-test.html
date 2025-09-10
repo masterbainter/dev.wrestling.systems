@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test - Wrestling.Systems</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-black text-gray-200 min-h-screen flex items-center justify-center">
+    
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-white mb-4">Debug System Test</h1>
+        <p class="text-gray-400 mb-8">Testing if debug logging appears in bottom-right corner</p>
+        
+        <div class="space-y-4">
+            <button id="test-log" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+                Add Debug Log
+            </button>
+            <button id="test-error" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded">
+                Add Debug Error
+            </button>
+            <button id="clear-debug" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded">
+                Clear Debug Panel
+            </button>
+        </div>
+    </div>
+
+    <script>
+        console.log("Debug test page loaded");
+        
+        // Create debug logging system
+        window.debugLog = function(message, data = null) {
+            console.log(message, data);
+            const debugDiv = document.getElementById('debug-output') || createDebugDiv();
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-xs text-gray-300 mb-1 border-b border-gray-700 pb-1';
+            logEntry.innerHTML = `<span class="text-green-400">[${timestamp}]</span> ${message} ${data ? '<br><span class="text-blue-300">' + JSON.stringify(data) + '</span>' : ''}`;
+            debugDiv.appendChild(logEntry);
+            
+            // Keep only last 15 logs
+            if (debugDiv.children.length > 16) { // +1 for header
+                debugDiv.removeChild(debugDiv.children[1]); // Keep header, remove oldest log
+            }
+            
+            // Scroll to bottom
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+        };
+        
+        window.debugError = function(message, error = null) {
+            console.error(message, error);
+            const debugDiv = document.getElementById('debug-output') || createDebugDiv();
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-xs text-red-300 mb-1 border-b border-red-800 pb-1';
+            logEntry.innerHTML = `<span class="text-red-500">[${timestamp}] ERROR:</span> ${message} ${error ? '<br><span class="text-red-400">' + (error.message || error) + '</span>' : ''}`;
+            debugDiv.appendChild(logEntry);
+            
+            // Keep only last 15 logs
+            if (debugDiv.children.length > 16) {
+                debugDiv.removeChild(debugDiv.children[1]);
+            }
+            
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+        };
+        
+        function createDebugDiv() {
+            const debugDiv = document.createElement('div');
+            debugDiv.id = 'debug-output';
+            debugDiv.className = 'fixed bottom-4 right-4 bg-gray-900 border border-gray-600 p-4 rounded-lg max-w-md w-80 max-h-96 overflow-y-auto text-xs shadow-2xl z-50';
+            
+            const header = document.createElement('div');
+            header.className = 'text-yellow-400 font-bold mb-3 text-sm border-b border-gray-600 pb-2 sticky top-0 bg-gray-900';
+            header.innerHTML = '🐛 Debug Log';
+            debugDiv.appendChild(header);
+            
+            document.body.appendChild(debugDiv);
+            return debugDiv;
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            debugLog("Debug test page initialized");
+            debugLog("Page loaded successfully");
+            
+            let logCounter = 1;
+            let errorCounter = 1;
+            
+            document.getElementById('test-log').addEventListener('click', () => {
+                debugLog(`Test log message #${logCounter}`, { counter: logCounter, timestamp: Date.now() });
+                logCounter++;
+            });
+            
+            document.getElementById('test-error').addEventListener('click', () => {
+                debugError(`Test error message #${errorCounter}`, new Error(`Simulated error #${errorCounter}`));
+                errorCounter++;
+            });
+            
+            document.getElementById('clear-debug').addEventListener('click', () => {
+                const debugDiv = document.getElementById('debug-output');
+                if (debugDiv) {
+                    // Keep only the header
+                    const header = debugDiv.firstChild;
+                    debugDiv.innerHTML = '';
+                    debugDiv.appendChild(header);
+                    debugLog("Debug panel cleared");
+                }
+            });
+            
+            // Auto-test: Add some initial logs
+            setTimeout(() => debugLog("Auto-test log after 1 second"), 1000);
+            setTimeout(() => debugError("Auto-test error after 2 seconds", "Sample error"), 2000);
+            setTimeout(() => debugLog("Debug system test complete"), 3000);
+        });
+    </script>
+</body>
+</html>
