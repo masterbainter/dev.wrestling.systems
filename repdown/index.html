@@ -351,24 +351,32 @@
         }
 
         function toggleAthleteSelection(el) {
+            console.log('Toggling athlete selection for:', el.dataset.athleteName);
             const isSelected = el.dataset.selected === 'true';
             const currentlySelected = document.querySelectorAll('.athlete-selectable[data-selected="true"]').length;
+            console.log('Currently selected count:', currentlySelected);
+            
             if (!isSelected && currentlySelected >= 5) {
                 alert("You can select a maximum of 5 athletes.");
                 return;
             }
             el.dataset.selected = isSelected ? 'false' : 'true';
+            console.log('New selection state:', el.dataset.selected);
             updateSelectionUI();
         }
 
         function updateSelectionUI() {
             const selectedElements = document.querySelectorAll('.athlete-selectable[data-selected="true"]');
             const currentSelection = Array.from(selectedElements).map(el => ({ id: el.dataset.athleteId, name: el.dataset.athleteName }));
+            console.log('Selected athletes:', currentSelection);
+            
             selectionCount.textContent = `Selected ${currentSelection.length} of 5 athletes.`;
             if (currentSelection.length > 0) {
+                console.log('Showing Let\'s Go button');
                 letsGoBtn.classList.remove('hidden');
                 letsGoBtn.disabled = false;
             } else {
+                console.log('Hiding Let\'s Go button');
                 letsGoBtn.classList.add('hidden');
                 letsGoBtn.disabled = true;
             }
