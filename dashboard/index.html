@@ -261,32 +261,70 @@
         }, 5000);
     </script>
 
-    <!-- Test if modules work at all -->
-    <script type="module">
-        debugLog("Module script started");
-        debugLog("Testing ES6 module support");
+    <!-- Firebase SDK using traditional script loading -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        debugLog("Traditional Firebase scripts loading...");
         
-        // Test basic module functionality
-        setTimeout(() => {
-            debugLog("Module setTimeout works");
-        }, 100);
+        // Wait for Firebase scripts to load
+        function waitForFirebase() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50; // 5 seconds max
+                
+                function checkFirebase() {
+                    attempts++;
+                    debugLog(`Checking Firebase availability (attempt ${attempts})`);
+                    
+                    if (typeof firebase !== 'undefined') {
+                        debugLog("Firebase global object found");
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        debugError("Firebase failed to load after maximum attempts");
+                        reject(new Error('Firebase failed to load'));
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                }
+                
+                checkFirebase();
+            });
+        }
         
-        debugLog("Loading Firebase modules...");
-        
-        try {
-            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-            debugLog("Firebase app module loaded");
+        // Initialize Firebase once it's loaded
+        waitForFirebase().then(() => {
+            debugLog("Firebase available, initializing...");
+
+            // Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
+                authDomain: "auth.wrestling.systems",
+                projectId: "wrestlingsystems",
+                storageBucket: "wrestlingsystems.appspot.com",
+                messagingSenderId: "255692661115",
+                appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
+                measurementId: "G-E52GDENT1E"
+            };
             
-            const { getAuth, onAuthStateChanged, signOut, sendEmailVerification } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-            debugLog("Firebase auth module loaded");
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            debugLog("Firebase initialized successfully");
             
-            const { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, arrayUnion } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-            debugLog("Firebase firestore module loaded");
-            debugLog("All Firebase modules loaded successfully");
+            // Now initialize the dashboard
+            await initializeDashboard();
+            
+        }).catch(error => {
+            debugError("Firebase loading failed", error);
+        });
 
             // DOM Elements
             const loaderContainer = document.getElementById('loader-container');
-        const dashboardContent = document.getElementById('dashboard-content');
+            const dashboardContent = document.getElementById('dashboard-content');
         const userStatusDiv = document.getElementById('user-status');
         const userDisplayName = document.getElementById('user-display-name');
         const userEmailDisplay = document.getElementById('user-email-display');
@@ -328,23 +366,14 @@
             }
         }
 
-        async function initFirebase() {
-            debugLog("initFirebase started");
-            const firebaseConfig = {
-                apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
-                authDomain: "auth.wrestling.systems",
-                projectId: "wrestlingsystems",
-                storageBucket: "wrestlingsystems.appspot.com",
-                messagingSenderId: "255692661115",
-                appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
-                measurementId: "G-E52GDENT1E"
-            };
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            debugLog("Firebase app initialized");
+        // Firebase variables (will be set when traditional loading completes)
+        let auth, db, userId;
 
-            onAuthStateChanged(auth, async (user) => {
+        // Main initialization function
+        async function initializeDashboard() {
+            debugLog("Starting dashboard initialization");
+            
+            auth.onAuthStateChanged(async (user) => {
                 debugLog("Auth state changed", user ? "User logged in" : "User logged out");
                 try {
                     if (user) {
@@ -406,13 +435,15 @@
                 }
             });
         }
+        
+        // Close initializeDashboard function
 
         async function populateUserInfo(user) {
             debugLog("populateUserInfo called for user", user.email);
-            const userRef = doc(db, "users", user.uid);
+            const userRef = db.collection("users").doc(user.uid);
             try {
                 debugLog("Getting user document from Firestore");
-                const docSnap = await getDoc(userRef);
+                const docSnap = await userRef.get();
                 if (docSnap.exists() && docSnap.data().firstName) {
                     userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
                     debugLog("Set display name from Firestore", docSnap.data().firstName);
