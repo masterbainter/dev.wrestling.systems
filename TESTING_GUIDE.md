@@ -22,9 +22,9 @@ This guide walks you through testing the complete enhanced wrestling.systems wor
 
 ## **🔥 Complete Testing Workflow**
 
-### **Phase 1: Enhanced Athlete Management**
+### **Phase 1: Athlete Management**
 
-#### **1.1 Test Enhanced Dashboard**
+#### **1.1 Test Athlete Dashboard**
 ```
 1. Go to: https://dev.wrestling.systems/dashboard/
 2. Sign in with your Firebase account
@@ -128,13 +128,13 @@ Verify template has:
 
 ### **Phase 3: Workout Execution Integration**
 
-#### **3.1 Test Rep Down with Enhanced Athletes**
+#### **3.1 Test Rep Down with Athletes**
 ```
 1. Go to: https://dev.wrestling.systems/repdown/
 2. Sign in
-3. Verify athlete selection shows enhanced athletes:
+3. Verify athlete selection shows athlete profiles:
    ✅ Full names (not just first names)
-   ✅ Enhanced athlete cards
+   ✅ Rich athlete information
 4. Select your test athlete
 5. Run a workout with default exercises
 6. Complete the workout
@@ -193,8 +193,8 @@ All apps → consistent user/athlete data
 ## **🎯 Success Criteria**
 
 ### **✅ Phase 1 Success:**
-- Enhanced athletes created with full metadata
-- Legacy migration works (if applicable)
+- Athletes created with full metadata and relationships
+- Data migration works (if applicable)  
 - Age calculation and relationship tracking work
 
 ### **✅ Phase 2 Success:**
@@ -203,7 +203,7 @@ All apps → consistent user/athlete data
 - All data correctly stored in Firestore
 
 ### **✅ Phase 3 Success:**
-- Rep Down app uses enhanced athletes
+- Rep Down app uses athlete profiles seamlessly
 - Workout completion stores data in athlete's fitnessProgress
 - Data flows between all components
 
