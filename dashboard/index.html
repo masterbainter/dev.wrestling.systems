@@ -425,8 +425,11 @@
                     transferRequest: null
                 };
 
+                console.log("Creating athlete with data:", athleteData);
+
                 // Add to athletes collection
                 const athleteRef = await addDoc(collection(db, "athletes"), athleteData);
+                console.log("Athlete created with ID:", athleteRef.id);
                 
                 // Create relationship data
                 const relationshipData = {
@@ -443,6 +446,7 @@
                 
                 if (userSnap.exists()) {
                     const userData = userSnap.data();
+                    console.log("Existing user data:", userData);
                     
                     // Initialize or enhance managedAthletes structure
                     if (userData.managedAthletes && Array.isArray(userData.managedAthletes)) {
@@ -457,17 +461,21 @@
                         }
                         enhancedAthletes[athleteRef.id] = relationshipData;
                         updateData.managedAthletes = enhancedAthletes;
+                        console.log("Migrating array to object structure");
                     } else {
                         // Add to existing enhanced structure or create new
                         updateData[`managedAthletes.${athleteRef.id}`] = relationshipData;
+                        console.log("Adding to existing object structure");
                     }
                 } else {
                     // Create new user document with enhanced structure
                     updateData.managedAthletes = {
                         [athleteRef.id]: relationshipData
                     };
+                    console.log("Creating new user document");
                 }
 
+                console.log("Update data:", updateData);
                 await setDoc(userRef, updateData, { merge: true });
 
                 // Clear form
@@ -486,7 +494,21 @@
 
             } catch (error) {
                 console.error("Error adding athlete:", error);
-                addAthleteError.textContent = "Could not save athlete. Please try again.";
+                console.error("Error code:", error.code);
+                console.error("Error message:", error.message);
+                
+                let friendlyMessage = "Could not save athlete. ";
+                if (error.code === 'permission-denied') {
+                    friendlyMessage += "Permission denied. Please try signing out and back in.";
+                } else if (error.code === 'unavailable') {
+                    friendlyMessage += "Service temporarily unavailable. Please try again.";
+                } else if (error.message) {
+                    friendlyMessage += error.message;
+                } else {
+                    friendlyMessage += "Please try again.";
+                }
+                
+                addAthleteError.textContent = friendlyMessage;
             } finally {
                 saveAthleteBtn.disabled = false;
             }
