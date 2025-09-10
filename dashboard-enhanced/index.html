@@ -440,8 +440,18 @@
             const userData = userSnap.data();
             
             // Check if migration is needed
-            if (!userData.managedAthletes || !Array.isArray(userData.managedAthletes)) {
-                alert('No legacy data found to migrate.');
+            if (!userData.managedAthletes) {
+                alert('No athlete data found to migrate.');
+                return;
+            }
+            
+            if (!Array.isArray(userData.managedAthletes)) {
+                alert('Data is already in enhanced format or migration not needed.');
+                return;
+            }
+            
+            if (userData.managedAthletes.length === 0) {
+                alert('No athletes to migrate.');
                 return;
             }
 
