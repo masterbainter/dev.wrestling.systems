@@ -318,6 +318,23 @@
             // Now initialize the dashboard
             initializeDashboard();
             
+            // Set up event listeners after Firebase is initialized
+            const signOutBtn = document.getElementById('signout-btn');
+            const saveAthleteBtn = document.getElementById('save-athlete-btn');
+            const migrateDataBtn = document.getElementById('migrate-data-btn');
+            const resendVerificationBtn = document.getElementById('resend-verification-btn');
+            const showAddAthleteBtn = document.getElementById('show-add-athlete-btn');
+            const cancelAddAthleteBtn = document.getElementById('cancel-add-athlete-btn');
+            
+            if (signOutBtn) signOutBtn.addEventListener('click', () => auth.signOut());
+            if (saveAthleteBtn) saveAthleteBtn.addEventListener('click', handleAddAthlete);
+            if (migrateDataBtn) migrateDataBtn.addEventListener('click', migrateExistingData);
+            if (resendVerificationBtn) resendVerificationBtn.addEventListener('click', resendVerificationEmail);
+            if (showAddAthleteBtn) showAddAthleteBtn.addEventListener('click', showAddAthleteForm);
+            if (cancelAddAthleteBtn) cancelAddAthleteBtn.addEventListener('click', hideAddAthleteForm);
+            
+            debugLog("Event listeners attached");
+            
         }).catch(error => {
             debugError("Firebase loading failed", error);
         });
@@ -834,63 +851,7 @@
             addAthleteError.textContent = '';
         }
 
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', async () => {
-            debugLog("DOM loaded, initializing Firebase");
-            debugLog("Loader element exists", !!loaderContainer);
-            debugLog("Dashboard element exists", !!dashboardContent);
-            
-            // Add timeout for debugging
-            const timeout = setTimeout(() => {
-                debugError("Firebase initialization timeout");
-                if (loaderContainer) {
-                    loaderContainer.classList.add('hidden');
-                }
-                document.body.innerHTML = `
-                    <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-                        <div class="bg-yellow-900/30 border border-yellow-500/30 rounded-lg p-8 max-w-md">
-                            <h2 class="text-yellow-300 font-bold text-xl mb-4">Debug Timeout</h2>
-                            <p class="text-yellow-200 mb-4">Check the debug log for details about what failed.</p>
-                            <button onclick="window.location.reload()" class="mt-4 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
-                                Try Again
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }, 10000); // 10 second timeout for debugging
-            
-            try {
-                debugLog("Calling initFirebase()");
-                await initFirebase();
-                clearTimeout(timeout);
-                debugLog("Firebase initialization completed successfully");
-            } catch (error) {
-                clearTimeout(timeout);
-                debugError("Firebase initialization failed", error);
-                if (loaderContainer) {
-                    loaderContainer.classList.add('hidden');
-                }
-                document.body.innerHTML = `
-                    <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-                        <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-8 max-w-md">
-                            <h2 class="text-red-300 font-bold text-xl mb-4">Initialization Failed</h2>
-                            <p class="text-red-200 mb-4">Firebase failed to initialize.</p>
-                            <p class="text-red-200 text-sm mb-4">Error: ${error.message}</p>
-                            <button onclick="window.location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-                                Reload Page
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            signOutBtn.addEventListener('click', () => auth.signOut());
-            saveAthleteBtn.addEventListener('click', handleAddAthlete);
-            migrateDataBtn.addEventListener('click', migrateExistingData);
-            resendVerificationBtn.addEventListener('click', resendVerificationEmail);
-            showAddAthleteBtn.addEventListener('click', showAddAthleteForm);
-            cancelAddAthleteBtn.addEventListener('click', hideAddAthleteForm);
-        });
+        // Event listeners will be attached after Firebase initializes in waitForFirebase().then()
     </script>
 </body>
 </html>
