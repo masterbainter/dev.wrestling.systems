@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Minimal Test - Wrestling.Systems</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #loader {
+            border: 5px solid #4b5563;
+            border-top: 5px solid #D4AF37;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-black text-gray-200 antialiased">
+    
+    <!-- Loader -->
+    <div id="loader-container" class="flex flex-col items-center justify-center min-h-screen">
+        <div id="loader"></div>
+        <p class="mt-4 text-gray-400">Loading Dashboard...</p>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboard-content" class="hidden min-h-screen p-8">
+        <h1 class="text-3xl font-bold text-white mb-4">Dashboard Loaded Successfully!</h1>
+        <p class="text-gray-400">If you see this, the basic dashboard structure works.</p>
+    </div>
+
+    <script>
+        console.log("Minimal dashboard - Script started");
+        
+        // Debug system (same as test page)
+        window.debugLog = function(message, data = null) {
+            console.log(message, data);
+            const debugDiv = document.getElementById('debug-output') || createDebugDiv();
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-xs text-gray-300 mb-1 border-b border-gray-700 pb-1';
+            logEntry.innerHTML = `<span class="text-green-400">[${timestamp}]</span> ${message} ${data ? '<br><span class="text-blue-300">' + JSON.stringify(data) + '</span>' : ''}`;
+            debugDiv.appendChild(logEntry);
+            if (debugDiv.children.length > 16) {
+                debugDiv.removeChild(debugDiv.children[1]);
+            }
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+        };
+        
+        window.debugError = function(message, error = null) {
+            console.error(message, error);
+            const debugDiv = document.getElementById('debug-output') || createDebugDiv();
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-xs text-red-300 mb-1 border-b border-red-800 pb-1';
+            logEntry.innerHTML = `<span class="text-red-500">[${timestamp}] ERROR:</span> ${message} ${error ? '<br><span class="text-red-400">' + (error.message || error) + '</span>' : ''}`;
+            debugDiv.appendChild(logEntry);
+            if (debugDiv.children.length > 16) {
+                debugDiv.removeChild(debugDiv.children[1]);
+            }
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+        };
+        
+        function createDebugDiv() {
+            const debugDiv = document.createElement('div');
+            debugDiv.id = 'debug-output';
+            debugDiv.className = 'fixed bottom-4 right-4 bg-gray-900 border border-gray-600 p-4 rounded-lg max-w-md w-80 max-h-96 overflow-y-auto text-xs shadow-2xl z-50';
+            const header = document.createElement('div');
+            header.className = 'text-yellow-400 font-bold mb-3 text-sm border-b border-gray-600 pb-2 sticky top-0 bg-gray-900';
+            header.innerHTML = '🐛 Dashboard Debug';
+            debugDiv.appendChild(header);
+            document.body.appendChild(debugDiv);
+            return debugDiv;
+        }
+        
+        debugLog("Debug system initialized");
+        
+        // Get DOM elements
+        debugLog("Getting DOM elements");
+        const loaderContainer = document.getElementById('loader-container');
+        const dashboardContent = document.getElementById('dashboard-content');
+        
+        debugLog("Loader element exists", !!loaderContainer);
+        debugLog("Dashboard element exists", !!dashboardContent);
+        
+        // Simulate what the real dashboard does
+        document.addEventListener('DOMContentLoaded', () => {
+            debugLog("DOM Content Loaded");
+            
+            // Test basic functionality
+            setTimeout(() => {
+                debugLog("Step 1: Simulating Firebase initialization");
+            }, 1000);
+            
+            setTimeout(() => {
+                debugLog("Step 2: Simulating authentication check");
+            }, 2000);
+            
+            setTimeout(() => {
+                debugLog("Step 3: Hiding loader, showing dashboard");
+                if (loaderContainer) {
+                    loaderContainer.classList.add('hidden');
+                    debugLog("Loader hidden successfully");
+                } else {
+                    debugError("Could not hide loader - element not found");
+                }
+                
+                if (dashboardContent) {
+                    dashboardContent.classList.remove('hidden');
+                    debugLog("Dashboard shown successfully");
+                } else {
+                    debugError("Could not show dashboard - element not found");
+                }
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
