@@ -196,23 +196,7 @@
 
     <!-- Firebase -->
     <script type="module">
-        // Emergency fallback - hide loader after 3 seconds no matter what
-        console.log("Script started, setting emergency fallback");
-        setTimeout(() => {
-            console.log("Emergency fallback triggered - hiding loader");
-            const loader = document.getElementById('loader-container');
-            const dashboard = document.getElementById('dashboard-content');
-            if (loader) {
-                loader.classList.add('hidden');
-                console.log("Loader hidden by emergency fallback");
-            }
-            if (dashboard) {
-                dashboard.classList.remove('hidden');
-                console.log("Dashboard shown by emergency fallback");
-            } else {
-                console.error("Dashboard element not found!");
-            }
-        }, 3000);
+        console.log("Wrestling Systems Dashboard - Script started");
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -247,6 +231,20 @@
 
         // Firebase State
         let auth, db, userId;
+
+        // Utility function for provider icons
+        function getProviderIcon(providerId) {
+            switch (providerId) {
+                case 'google.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
+                case 'facebook.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
+                case 'microsoft.com':
+                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
+                default:
+                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
+            }
+        }
 
         async function initFirebase() {
             const firebaseConfig = {
@@ -645,19 +643,6 @@
                 age--;
             }
             return age;
-        }
-
-        function getProviderIcon(providerId) {
-            switch (providerId) {
-                case 'google.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
-                case 'facebook.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
-                case 'microsoft.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
-                default:
-                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
-            }
         }
 
         // Global functions for onclick handlers
