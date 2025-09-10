@@ -214,28 +214,8 @@
         // Auth State Listener
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // User is signed in.
-                loginContainer.classList.add('hidden');
-                userStatusDiv.classList.remove('hidden');
-                
-                const userRef = doc(db, "users", user.uid);
-                try {
-                    const docSnap = await getDoc(userRef);
-                    if (docSnap.exists() && docSnap.data().firstName) {
-                        userDisplayName.textContent = `Hello, ${docSnap.data().firstName}`;
-                    } else {
-                        userDisplayName.textContent = user.displayName || user.email; // Fallback
-                    }
-                } catch(e) {
-                    console.error("Error fetching user data:", e);
-                    userDisplayName.textContent = user.displayName || user.email; // Fallback on error
-                }
-                
-                // Populate user details dropdown
-                const providerId = user.providerData[0]?.providerId || 'password';
-                providerIconContainer.innerHTML = getProviderIcon(providerId);
-                userEmailDisplay.textContent = user.email;
-
+                // User is already signed in, redirect to dashboard
+                window.location.href = "https://dev.wrestling.systems/dashboard/";
             } else {
                 // User is signed out.
                 loginContainer.classList.remove('hidden');
