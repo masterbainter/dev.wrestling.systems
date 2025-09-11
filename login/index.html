@@ -136,7 +136,9 @@
             OAuthProvider,
             signInWithPopup,
             onAuthStateChanged,
-            signOut
+            signOut,
+            fetchSignInMethodsForEmail,
+            linkWithCredential
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         // App Check removed for development
@@ -194,6 +196,109 @@
         const showError = (message, errorObj = null) => {
             errorMessage.innerHTML = message;
             if (errorObj) console.error("Sign-in Error:", errorObj.code, errorObj.message);
+        };
+
+        // Smart account linking handler
+        const handleAccountLinking = async (error, newProvider) => {
+            try {
+                // Get the existing provider info
+                const email = error.customData.email;
+                const newProviderName = newProvider.providerId.split('.')[0];
+                
+                // Get existing sign-in methods for this email
+                const methods = await fetchSignInMethodsForEmail(auth, email);
+                const existingProvider = methods[0]?.split('.')[0] || 'email';
+                
+                // Show linking dialog
+                const shouldLink = await showAccountLinkingDialog(email, existingProvider, newProviderName);
+                
+                if (shouldLink) {
+                    // User wants to link accounts
+                    await linkAccounts(error, newProvider);
+                } else {
+                    // User wants to sign in with existing provider
+                    showError(`Please sign in with ${existingProvider.charAt(0).toUpperCase() + existingProvider.slice(1)} instead.`);
+                }
+            } catch (linkError) {
+                console.error("Account linking error:", linkError);
+                showError("Unable to link accounts. Please try signing in with your original method.");
+            }
+        };
+
+        // Show account linking dialog
+        const showAccountLinkingDialog = (email, existingProvider, newProvider) => {
+            return new Promise((resolve) => {
+                const existingProviderName = existingProvider.charAt(0).toUpperCase() + existingProvider.slice(1);
+                const newProviderName = newProvider.charAt(0).toUpperCase() + newProvider.slice(1);
+                
+                const linkingHtml = `
+                    <div class="text-left bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                        <p class="font-semibold mb-3">🔗 Link Your Accounts</p>
+                        <p class="text-sm mb-3">
+                            Hey! This email (<strong>${email}</strong>) is already linked to <strong>${existingProviderName}</strong>.
+                        </p>
+                        <p class="text-sm mb-4">
+                            Want to link your <strong>${newProviderName}</strong> account so you can sign in with either method?
+                        </p>
+                        <div class="flex gap-2 mt-4">
+                            <button id="link-accounts-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded transition-colors">
+                                🔗 Link Accounts
+                            </button>
+                            <button id="use-existing-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded transition-colors">
+                                Use ${existingProviderName}
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">
+                            Linking keeps all your data safe and lets you sign in with either method.
+                        </p>
+                    </div>
+                `;
+                
+                errorMessage.innerHTML = linkingHtml;
+                
+                // Add event listeners
+                document.getElementById('link-accounts-btn').addEventListener('click', () => resolve(true));
+                document.getElementById('use-existing-btn').addEventListener('click', () => resolve(false));
+            });
+        };
+
+        // Link accounts using Firebase
+        const linkAccounts = async (error, newProvider) => {
+            try {
+                // First, sign in with the existing provider to get the user
+                const email = error.customData.email;
+                const methods = await fetchSignInMethodsForEmail(auth, email);
+                
+                showError("Please sign in with your existing account first to link the new provider...");
+                
+                // Sign in with existing provider
+                let existingUser;
+                if (methods.includes('google.com')) {
+                    const result = await signInWithPopup(auth, googleProvider);
+                    existingUser = result.user;
+                } else if (methods.includes('facebook.com')) {
+                    const result = await signInWithPopup(auth, facebookProvider);
+                    existingUser = result.user;
+                } else if (methods.includes('microsoft.com')) {
+                    const result = await signInWithPopup(auth, microsoftProvider);
+                    existingUser = result.user;
+                }
+                
+                if (existingUser) {
+                    // Now link the new provider
+                    const credential = OAuthProvider.credentialFromError(error);
+                    if (credential) {
+                        await linkWithCredential(existingUser, credential);
+                        showError(`✅ Accounts linked! You can now sign in with either method.`);
+                        setTimeout(() => {
+                            window.location.href = "https://dev.wrestling.systems/dashboard/";
+                        }, 2000);
+                    }
+                }
+            } catch (linkError) {
+                console.error("Linking error:", linkError);
+                showError("Could not link accounts. Please try again.");
+            }
         };
         
         function getProviderIcon(providerId) {
@@ -276,23 +381,9 @@
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    // Enhanced error handling for duplicate emails
-                    const providerName = provider.providerId.split('.')[0];
-                    friendlyMessage = `
-                        <div class="text-left">
-                            <p class="font-semibold mb-2">🔗 Account Already Exists</p>
-                            <p class="text-sm mb-3">This email is already registered with a different sign-in method.</p>
-                            <p class="text-xs text-gray-400 mb-3">
-                                <strong>What you can do:</strong><br>
-                                • Try signing in with Google, Facebook, or Microsoft instead<br>
-                                • Or use email/password if you created an account that way<br>
-                                • All your data will be the same regardless of sign-in method
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                Note: This helps keep your account secure by preventing duplicate accounts.
-                            </p>
-                        </div>
-                    `;
+                    // Smart account linking flow
+                    await handleAccountLinking(error, provider);
+                    return; // Don't show generic error message
                 } else if (error.code.includes('app-check')) {
                     friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
                 } else if (error.code === 'auth/unauthorized-domain') {
