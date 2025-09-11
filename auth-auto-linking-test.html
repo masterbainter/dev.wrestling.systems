@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Auto-Linking Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #333; border-radius: 8px; }
+        button { margin: 10px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .google { background: #4285f4; color: white; }
+        .facebook { background: #1877f2; color: white; }
+        .microsoft { background: #00a4ef; color: white; }
+        .signout { background: #dc3545; color: white; }
+        #results { margin-top: 20px; padding: 15px; background: #2a2a2a; border-radius: 5px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Firebase Auto-Linking Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Firebase Auto-Linking Setting</h2>
+        <p>If "One account per email address" is enabled in Firebase Console, all OAuth sign-ins with the same email should work without errors.</p>
+        
+        <button id="google-btn" class="google">Sign in with Google</button>
+        <button id="facebook-btn" class="facebook">Sign in with Facebook</button>
+        <button id="microsoft-btn" class="microsoft">Sign in with Microsoft</button>
+        <button id="signout-btn" class="signout">Sign Out</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Expected Behavior:</h3>
+        <ul>
+            <li>✅ <strong>Auto-linking works:</strong> All providers sign in successfully, no errors</li>
+            <li>❌ <strong>Auto-linking broken:</strong> You get <code>auth/account-exists-with-different-credential</code> errors</li>
+        </ul>
+    </div>
+    
+    <div id="results">
+        <div id="status">Not signed in</div>
+        <div id="logs"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            GoogleAuthProvider,
+            FacebookAuthProvider,
+            OAuthProvider,
+            signInWithPopup,
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDUKOn5OKq9XYwJF-loJ-1E8_P4jaCvnUM",
+            authDomain: "wrestling-systems-dev.firebaseapp.com",
+            projectId: "wrestling-systems-dev",
+            storageBucket: "wrestling-systems-dev.firebasestorage.app",
+            messagingSenderId: "115633693255",
+            appId: "1:115633693255:web:3ddd3679f2038438c14762"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        
+        const googleProvider = new GoogleAuthProvider();
+        const facebookProvider = new FacebookAuthProvider();
+        const microsoftProvider = new OAuthProvider('microsoft.com');
+        
+        const statusDiv = document.getElementById('status');
+        const logsDiv = document.getElementById('logs');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#51cf66' : '#74c0fc';
+            logsDiv.innerHTML += `<div style="color: ${color}; margin: 5px 0;">[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+
+        // Clear logs
+        logsDiv.innerHTML = '';
+        log("🔍 Firebase Auto-Linking Test Started");
+        log("Project: wrestling-systems-dev");
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                statusDiv.innerHTML = `
+                    <strong>✅ Signed in as:</strong> ${user.email}<br>
+                    <strong>UID:</strong> ${user.uid}<br>
+                    <strong>Linked Providers:</strong> ${user.providerData.map(p => p.providerId).join(', ')}<br>
+                    <strong>Total Providers:</strong> ${user.providerData.length}
+                `;
+                
+                if (user.providerData.length > 1) {
+                    log("🎉 SUCCESS: Multiple providers linked automatically!", 'success');
+                    log(`Providers: ${user.providerData.map(p => p.providerId).join(', ')}`, 'success');
+                } else {
+                    log(`Single provider: ${user.providerData[0]?.providerId}`);
+                }
+            } else {
+                statusDiv.innerHTML = "Not signed in";
+                log("Signed out");
+            }
+        });
+
+        async function testOAuth(provider, providerName) {
+            try {
+                log(`🔄 Testing ${providerName} OAuth...`);
+                const result = await signInWithPopup(auth, provider);
+                log(`✅ ${providerName} sign-in successful!`, 'success');
+                log(`User: ${result.user.email}`, 'success');
+                log(`Providers: ${result.user.providerData.map(p => p.providerId).join(', ')}`, 'success');
+                
+            } catch (error) {
+                if (error.code === 'auth/account-exists-with-different-credential') {
+                    log(`❌ ${providerName}: auth/account-exists-with-different-credential`, 'error');
+                    log("🚨 FIREBASE AUTO-LINKING IS NOT WORKING!", 'error');
+                    log("Check Firebase Console -> Authentication -> Settings", 'error');
+                    log("Ensure 'One account per email address' is ENABLED", 'error');
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    log(`⚠️ ${providerName}: Popup closed by user`);
+                } else {
+                    log(`❌ ${providerName}: ${error.code} - ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Event listeners
+        document.getElementById('google-btn').addEventListener('click', () => testOAuth(googleProvider, 'Google'));
+        document.getElementById('facebook-btn').addEventListener('click', () => testOAuth(facebookProvider, 'Facebook'));
+        document.getElementById('microsoft-btn').addEventListener('click', () => testOAuth(microsoftProvider, 'Microsoft'));
+        document.getElementById('signout-btn').addEventListener('click', () => {
+            signOut(auth);
+            logsDiv.innerHTML = '';
+            log("🔍 Firebase Auto-Linking Test Started");
+        });
+
+        log("🔧 Test ready. Try signing in with different providers using the same email address.");
+    </script>
+</body>
+</html>

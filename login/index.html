@@ -180,6 +180,12 @@
             console.log("- Project ID:", firebaseConfig.projectId);
             console.log("- Auth Domain:", firebaseConfig.authDomain);
             console.log("- App Check enabled:", !!auth.app.options.appCheckOptions);
+            
+            // Test Firebase auto-linking configuration
+            console.log("🔍 FIREBASE AUTO-LINKING TEST:");
+            console.log("If 'One account per email address' is enabled, you should NEVER see auth/account-exists-with-different-credential errors");
+            console.log("If you see those errors, the setting may not be properly configured");
+            console.log("Check: https://console.firebase.google.com/project/wrestling-systems-dev/authentication/settings");
         };
         
         // Initialize persistence
@@ -515,6 +521,13 @@
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
+                    console.error("🚨 FIREBASE AUTO-LINKING IS NOT WORKING!");
+                    console.error("You should NOT see this error if 'link accounts that use the same email' is enabled in Firebase Console");
+                    console.error("Check: https://console.firebase.google.com/project/wrestling-systems-dev/authentication/settings");
+                    console.error("Look for: 'Multiple accounts per email address' -> Should be DISABLED");
+                    console.error("And: 'One account per email address' -> Should be ENABLED");
+                    
+                    // This error indicates the Firebase setting is not properly configured
                     // First check if user is already signed in and has this provider linked
                     if (auth.currentUser) {
                         const currentProviders = auth.currentUser.providerData.map(p => p.providerId);
