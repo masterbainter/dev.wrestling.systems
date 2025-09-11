@@ -500,12 +500,18 @@
                     
                     if (email && credential) {
                         try {
-                            // Store the credential for linking after successful sign-in
-                            sessionStorage.setItem('pendingCredential', JSON.stringify({
-                                credential: credential,
+                            // Store the credential data for linking after successful sign-in
+                            // We need to extract the actual tokens from the credential object
+                            const credentialData = {
                                 providerId: provider.providerId,
-                                email: email
-                            }));
+                                email: email,
+                                accessToken: credential.accessToken,
+                                idToken: credential.idToken,
+                                secret: credential.secret // For Twitter/OAuth1.0 if needed
+                            };
+                            
+                            console.log("Storing credential data:", credentialData);
+                            sessionStorage.setItem('pendingCredential', JSON.stringify(credentialData));
                             
                             // Create modal overlay and dialog
                             const modalHtml = `
@@ -687,35 +693,49 @@
                     throw new Error("No pending credential found");
                 }
                 
-                const { credential } = JSON.parse(pendingData);
+                const credentialData = JSON.parse(pendingData);
+                console.log("Retrieved credential data:", credentialData);
                 
-                // Reconstruct the credential object
+                // Verify email matches to prevent cross-email linking
+                if (credentialData.email !== result.user.email) {
+                    throw new Error(`Email mismatch: trying to link ${credentialData.email} to ${result.user.email}`);
+                }
+                
+                // Reconstruct the credential object using stored tokens
                 let linkCredential;
-                if (credential.providerId === 'google.com') {
-                    linkCredential = GoogleAuthProvider.credential(credential.idToken, credential.accessToken);
-                } else if (credential.providerId === 'facebook.com') {
-                    linkCredential = FacebookAuthProvider.credential(credential.accessToken);
-                } else if (credential.providerId === 'microsoft.com') {
+                if (credentialData.providerId === 'google.com') {
+                    linkCredential = GoogleAuthProvider.credential(credentialData.idToken, credentialData.accessToken);
+                } else if (credentialData.providerId === 'facebook.com') {
+                    linkCredential = FacebookAuthProvider.credential(credentialData.accessToken);
+                } else if (credentialData.providerId === 'microsoft.com') {
                     linkCredential = new OAuthProvider('microsoft.com').credential({
-                        idToken: credential.idToken,
-                        accessToken: credential.accessToken
+                        idToken: credentialData.idToken,
+                        accessToken: credentialData.accessToken
                     });
                 }
+                
+                console.log("Reconstructed credential:", linkCredential);
                 
                 if (!linkCredential) {
                     throw new Error("Could not reconstruct credential for linking");
                 }
                 
                 // Link the credential
-                await linkWithCredential(result.user, linkCredential);
+                console.log("Attempting to link credential to user:", result.user.uid);
+                const linkedResult = await linkWithCredential(result.user, linkCredential);
+                console.log("Link successful! Linked result:", linkedResult);
+                
+                // Verify the link worked by checking user's provider data
+                const linkedProviders = result.user.providerData.map(p => p.providerId);
+                console.log("User now has providers:", linkedProviders);
                 
                 // Clean up
                 sessionStorage.removeItem('pendingCredential');
                 
-                showError("✅ Accounts linked successfully! Redirecting...");
+                showError(`✅ Accounts linked successfully! You can now sign in with ${linkedProviders.join(', ')}. Redirecting...`);
                 setTimeout(() => {
                     handleAuthSuccess(result);
-                }, 1500);
+                }, 2000);
                 
             } catch (linkError) {
                 console.error("Account linking failed:", linkError);
