@@ -406,17 +406,42 @@
         const setupLinkingDialogEvents = (pendingCredential) => {
             const dialog = document.getElementById('linking-dialog');
             
+            console.log('Setting up linking dialog events');
+            console.log('Dialog found:', !!dialog);
+            console.log('Pending credential:', pendingCredential);
+            
             // Cancel button
-            document.getElementById('cancel-linking')?.addEventListener('click', () => {
+            const cancelBtn = document.getElementById('cancel-linking');
+            console.log('Cancel button found:', !!cancelBtn);
+            cancelBtn?.addEventListener('click', () => {
+                console.log('Cancel clicked');
                 dialog.remove();
             });
             
             // Provider buttons
-            document.querySelectorAll('.link-provider-btn').forEach(btn => {
+            const providerBtns = document.querySelectorAll('.link-provider-btn');
+            console.log('Provider buttons found:', providerBtns.length);
+            
+            providerBtns.forEach((btn, index) => {
+                const providerType = btn.dataset.provider;
+                console.log(`Button ${index}: ${providerType}`);
+                
                 btn.addEventListener('click', async (e) => {
-                    const providerType = e.currentTarget.dataset.provider;
-                    await performAccountLinking(providerType, pendingCredential);
-                    dialog.remove();
+                    e.preventDefault();
+                    console.log(`=== PROVIDER BUTTON CLICKED: ${providerType} ===`);
+                    
+                    // Disable the button to prevent double-clicks
+                    btn.disabled = true;
+                    btn.textContent = 'Connecting...';
+                    
+                    try {
+                        await performAccountLinking(providerType, pendingCredential);
+                        dialog.remove();
+                    } catch (error) {
+                        console.error('Error in button click handler:', error);
+                        btn.disabled = false;
+                        btn.textContent = `Continue with ${providerType}`;
+                    }
                 });
             });
         };
@@ -424,16 +449,23 @@
         // Perform the actual account linking
         const performAccountLinking = async (providerType, pendingCredential) => {
             try {
+                console.log('=== STARTING ACCOUNT LINKING ===');
+                console.log('Provider type:', providerType);
+                console.log('Pending credential:', pendingCredential);
+                
                 showError('Signing in to link accounts...');
                 
                 let existingResult;
                 
                 // Sign in with existing provider
                 if (providerType === 'google') {
+                    console.log('Signing in with Google...');
                     existingResult = await signInWithPopup(auth, googleProvider);
                 } else if (providerType === 'facebook') {
+                    console.log('Signing in with Facebook...');
                     existingResult = await signInWithPopup(auth, facebookProvider);
                 } else if (providerType === 'microsoft') {
+                    console.log('Signing in with Microsoft...');
                     existingResult = await signInWithPopup(auth, microsoftProvider);
                 } else if (providerType === 'email') {
                     // For email/password, we need to show the form
@@ -441,30 +473,51 @@
                     return;
                 }
                 
-                if (!existingResult) return;
+                if (!existingResult) {
+                    console.error('No result from existing provider sign-in');
+                    return;
+                }
+                
+                console.log('Existing sign-in successful:', existingResult.user.email);
+                console.log('Current providers before linking:', existingResult.user.providerData.map(p => p.providerId));
                 
                 // Link the pending credential to the existing account
                 showError('Linking accounts...');
+                console.log('Attempting linkWithCredential...');
+                
                 const linkedResult = await linkWithCredential(existingResult.user, pendingCredential);
                 
-                console.log('✅ Accounts linked successfully:', linkedResult.user);
-                console.log('Linked providers:', linkedResult.user.providerData.map(p => p.providerId));
+                console.log('✅ Accounts linked successfully!');
+                console.log('Linked user UID:', linkedResult.user.uid);
+                console.log('Linked user email:', linkedResult.user.email);
+                console.log('Final linked providers:', linkedResult.user.providerData.map(p => p.providerId));
                 
                 showError('✅ Accounts linked! Redirecting...');
                 
                 // Store updated user data and redirect
-                handleAuthSuccess(linkedResult);
+                setTimeout(() => {
+                    handleAuthSuccess(linkedResult);
+                }, 1500);
                 
             } catch (linkError) {
-                console.error('Account linking failed:', linkError);
+                console.error('=== ACCOUNT LINKING FAILED ===');
+                console.error('Error code:', linkError.code);
+                console.error('Error message:', linkError.message);
+                console.error('Full error:', linkError);
                 
                 if (linkError.code === 'auth/provider-already-linked') {
+                    console.log('Provider already linked - this should be success');
                     showError('✅ Accounts already linked! Redirecting...');
-                    handleAuthSuccess({ user: auth.currentUser });
+                    setTimeout(() => {
+                        handleAuthSuccess({ user: auth.currentUser });
+                    }, 1500);
                 } else if (linkError.code === 'auth/credential-already-in-use') {
                     showError('This account is already linked to a different user. Please use a different account.');
+                } else if (linkError.code === 'auth/invalid-credential') {
+                    console.error('Invalid credential - the pending credential may have expired');
+                    showError('Account linking failed - please try signing in again with the new provider.');
                 } else {
-                    showError('Account linking failed. Please try again or contact support.');
+                    showError(`Account linking failed: ${linkError.message}`);
                 }
             }
         };
