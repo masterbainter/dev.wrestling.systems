@@ -167,7 +167,9 @@
             OAuthProvider,
             signInWithPopup,
             onAuthStateChanged,
-            sendEmailVerification
+            sendEmailVerification,
+            fetchSignInMethodsForEmail,
+            linkWithCredential
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         // App Check removed for development
@@ -309,6 +311,149 @@
             }
         });
         
+        // Helper function for successful authentication
+        const handleAuthSuccess = (userCredential) => {
+            console.log('User signed in successfully:', userCredential.user.uid);
+            window.location.href = "https://dev.wrestling.systems/dashboard/";
+        };
+
+        // Show account linking dialog
+        const showAccountLinkingDialog = (email, existingProvider, newProvider) => {
+            return new Promise((resolve) => {
+                const existingProviderName = existingProvider.charAt(0).toUpperCase() + existingProvider.slice(1);
+                const newProviderName = newProvider.charAt(0).toUpperCase() + newProvider.slice(1);
+                
+                const linkingHtml = `
+                    <div class="text-left bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                        <p class="font-semibold mb-3">🔗 Link Your Accounts</p>
+                        <p class="text-sm mb-3">
+                            Hey! This email (<strong>${email}</strong>) is already linked to <strong>${existingProviderName}</strong>.
+                        </p>
+                        <p class="text-sm mb-4">
+                            Want to link your <strong>${newProviderName}</strong> account so you can sign in with either method?
+                        </p>
+                        <div class="flex gap-2 mt-4">
+                            <button id="link-accounts-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded transition-colors">
+                                🔗 Link Accounts
+                            </button>
+                            <button id="use-existing-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded transition-colors">
+                                Use ${existingProviderName}
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">
+                            Linking keeps all your data safe and lets you sign in with either method.
+                        </p>
+                    </div>
+                `;
+                
+                errorMessage.innerHTML = linkingHtml;
+                
+                // Add event listeners
+                document.getElementById('link-accounts-btn').addEventListener('click', () => resolve(true));
+                document.getElementById('use-existing-btn').addEventListener('click', () => resolve(false));
+            });
+        };
+
+        // Link accounts using Firebase
+        const linkAccounts = async (error, newProvider) => {
+            try {
+                // First, sign in with the existing provider to get the user
+                const email = error.customData.email;
+                const methods = await fetchSignInMethodsForEmail(auth, email);
+                
+                showError("Please sign in with your existing account first to link the new provider...");
+                
+                // Sign in with existing provider
+                let existingUser;
+                if (methods.includes('google.com')) {
+                    const result = await signInWithPopup(auth, googleProvider);
+                    existingUser = result.user;
+                } else if (methods.includes('facebook.com')) {
+                    const result = await signInWithPopup(auth, facebookProvider);
+                    existingUser = result.user;
+                } else if (methods.includes('microsoft.com')) {
+                    const result = await signInWithPopup(auth, microsoftProvider);
+                    existingUser = result.user;
+                }
+                
+                if (existingUser) {
+                    // Now link the new provider - get credential based on provider type
+                    let credential = null;
+                    if (newProvider.providerId === 'google.com') {
+                        credential = GoogleAuthProvider.credentialFromError(error);
+                    } else if (newProvider.providerId === 'facebook.com') {
+                        credential = FacebookAuthProvider.credentialFromError(error);
+                    } else if (newProvider.providerId === 'microsoft.com') {
+                        credential = OAuthProvider.credentialFromError(error);
+                    }
+                    
+                    if (credential) {
+                        await linkWithCredential(existingUser, credential);
+                        showError(`✅ Accounts linked! You can now sign in with either method.`);
+                        setTimeout(() => {
+                            window.location.href = "https://dev.wrestling.systems/dashboard/";
+                        }, 2000);
+                    }
+                }
+            } catch (linkError) {
+                console.error("Linking error:", linkError);
+                showError("Could not link accounts. Please try again.");
+            }
+        };
+        
+        // Smart account linking handler
+        const handleAccountLinking = async (error, newProvider) => {
+            try {
+                console.log("=== ACCOUNT LINKING DEBUG ===");
+                console.log("Error:", error);
+                console.log("New provider:", newProvider);
+                
+                // Get the existing provider info
+                const email = error.customData?.email;
+                console.log("Email from error:", email);
+                
+                if (!email) {
+                    throw new Error("No email found in error object");
+                }
+                
+                const newProviderName = newProvider.providerId.split('.')[0];
+                console.log("New provider name:", newProviderName);
+                
+                // Get existing sign-in methods for this email
+                console.log("Fetching sign-in methods for:", email);
+                const methods = await fetchSignInMethodsForEmail(auth, email);
+                console.log("Existing methods:", methods);
+                
+                const existingProvider = methods[0]?.split('.')[0] || 'email';
+                console.log("Existing provider:", existingProvider);
+                
+                // Show linking dialog
+                console.log("Showing account linking dialog...");
+                const shouldLink = await showAccountLinkingDialog(email, existingProvider, newProviderName);
+                console.log("User choice - shouldLink:", shouldLink);
+                
+                if (shouldLink) {
+                    // User wants to link accounts
+                    console.log("User chose to link accounts");
+                    await linkAccounts(error, newProvider);
+                } else {
+                    // User wants to sign in with existing provider
+                    console.log("User chose existing provider");
+                    showError(`Please sign in with ${existingProvider.charAt(0).toUpperCase() + existingProvider.slice(1)} instead.`);
+                }
+            } catch (linkError) {
+                console.error("Account linking error:", linkError);
+                console.error("Full error details:", {
+                    code: linkError.code,
+                    message: linkError.message,
+                    stack: linkError.stack
+                });
+                
+                // Instead of showing a generic error, let's fall back to the simple message
+                showError("This email is already registered. Please try signing in with your original method, or try a different email address.");
+            }
+        };
+
         // Generic Social Sign-in Handler
         const handleSocialSignIn = async (provider, button) => {
             errorMessage.textContent = '';
@@ -316,18 +461,28 @@
             try {
                 const result = await signInWithPopup(auth, provider);
                 await createSocialUserInFirestore(result.user);
+                handleAuthSuccess(result);
             } catch (error) {
-                let friendlyMessage = `Could not sign in with ${provider.providerId}. Please try again.`;
+                let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
+                
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    friendlyMessage = "An account already exists with this email. Please sign in with your original method.";
+                    // Smart account linking flow
+                    await handleAccountLinking(error, provider);
+                    return; // Don't show generic error message
                 } else if (error.code.includes('app-check')) {
                     friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
                 } else if (error.code === 'auth/unauthorized-domain') {
-                    friendlyMessage = 'Authentication domain not authorized. Please contact support or try again later.';
+                    friendlyMessage = 'Authentication domain not authorized. Please contact support.';
+                } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+                    // Don't show an error message if the user intentionally closes the popup.
+                    friendlyMessage = '';
                 } else if (error.code === 'permission-denied') {
                     friendlyMessage = 'Failed to save user data due to permissions. Please contact support.';
                 }
-                showError(friendlyMessage, error);
+                
+                if (friendlyMessage) {
+                    showError(friendlyMessage, error);
+                }
             } finally {
                 button.disabled = false;
             }
