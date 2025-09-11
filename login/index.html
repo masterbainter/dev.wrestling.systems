@@ -197,11 +197,11 @@
         const getCredentialFromError = (error, provider) => {
             try {
                 if (provider.providerId === 'google.com') {
-                    return firebase.auth.GoogleAuthProvider.credentialFromError(error);
+                    return GoogleAuthProvider.credentialFromError(error);
                 } else if (provider.providerId === 'facebook.com') {
-                    return firebase.auth.FacebookAuthProvider.credentialFromError(error);
+                    return FacebookAuthProvider.credentialFromError(error);
                 } else if (provider.providerId === 'microsoft.com') {
-                    return firebase.auth.OAuthProvider.credentialFromError(error);
+                    return OAuthProvider.credentialFromError(error);
                 }
                 return null;
             } catch (credError) {
@@ -493,7 +493,7 @@
                         
                         if (email && credential) {
                             // Get existing sign-in methods
-                            const methods = await firebase.auth().fetchSignInMethodsForEmail(email);
+                            const methods = await fetchSignInMethodsForEmail(auth, email);
                             debugLog("Existing methods for", email, ":", methods);
                             
                             if (methods && methods.length > 0) {
@@ -507,16 +507,16 @@
                                 // Create a provider for the existing method and sign in
                                 let existingProvider;
                                 if (existingMethod.includes('google')) {
-                                    existingProvider = new firebase.auth.GoogleAuthProvider();
+                                    existingProvider = new GoogleAuthProvider();
                                 } else if (existingMethod.includes('facebook')) {
-                                    existingProvider = new firebase.auth.FacebookAuthProvider();
+                                    existingProvider = new FacebookAuthProvider();
                                 } else if (existingMethod.includes('microsoft')) {
-                                    existingProvider = new firebase.auth.OAuthProvider('microsoft.com');
+                                    existingProvider = new OAuthProvider('microsoft.com');
                                 }
                                 
                                 if (existingProvider) {
                                     // Sign in with existing provider, then link
-                                    const result = await firebase.auth().signInWithPopup(existingProvider);
+                                    const result = await signInWithPopup(auth, existingProvider);
                                     await result.user.linkWithCredential(credential);
                                     
                                     showError(`✅ Accounts linked successfully! You can now sign in with either method.`);

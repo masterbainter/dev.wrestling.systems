@@ -583,7 +583,7 @@
                 if (!confirmed) return;
                 
                 // Try to get existing sign-in methods for this email
-                const methods = await firebase.auth().fetchSignInMethodsForEmail(user.email);
+                const methods = await auth.fetchSignInMethodsForEmail(user.email);
                 debugLog("Available sign-in methods for", user.email, ":", methods);
                 
                 if (methods.length <= 1) {
