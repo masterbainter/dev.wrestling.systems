@@ -137,7 +137,11 @@
             signInWithPopup,
             onAuthStateChanged,
             signOut,
-            linkWithCredential
+            linkWithCredential,
+            linkWithPopup,
+            fetchSignInMethodsForEmail,
+            setPersistence,
+            browserLocalPersistence
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -155,6 +159,31 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // Initialize Firebase Auth with explicit persistence and debugging
+        const initializeAuth = async () => {
+            console.log("Setting Firebase Auth persistence to LOCAL...");
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                console.log("✅ Firebase Auth persistence set to LOCAL");
+                
+                // Verify the persistence setting worked
+                console.log("Auth persistence state:", auth.config?.persistence);
+                
+            } catch (persistenceError) {
+                console.error("❌ Failed to set persistence:", persistenceError);
+                console.log("Continuing with default persistence...");
+            }
+            
+            // Debug: Check current Firebase project and auth domain
+            console.log("🔧 Firebase Auth Configuration:");
+            console.log("- Project ID:", firebaseConfig.projectId);
+            console.log("- Auth Domain:", firebaseConfig.authDomain);
+            console.log("- App Check enabled:", !!auth.app.options.appCheckOptions);
+        };
+        
+        // Initialize persistence
+        initializeAuth();
         
         // Initialize Auth Providers
         const googleProvider = new GoogleAuthProvider();
@@ -745,8 +774,18 @@
                 console.log("User metadata:", linkedResult.user.metadata);
                 console.log("User token claims:", await linkedResult.user.getIdTokenResult());
                 
-                // Let's also refresh the user and check again
+                // Critical: Force token refresh and user reload to sync provider data
+                console.log("🔄 Forcing user token refresh and reload...");
                 await linkedResult.user.reload();
+                
+                // Also refresh the ID token to ensure provider data is current
+                try {
+                    const refreshedToken = await linkedResult.user.getIdToken(true); // Force refresh
+                    console.log("✅ Token refreshed successfully");
+                } catch (tokenError) {
+                    console.error("❌ Token refresh failed:", tokenError);
+                }
+                
                 console.log("After reload - providers:", linkedResult.user.providerData.map(p => p.providerId));
                 
                 // Check current auth state
