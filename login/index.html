@@ -43,7 +43,6 @@
         </div>
     </div>
 
-
     <!-- Main Container -->
     <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-black to-gray-900 p-4">
         
@@ -120,13 +119,12 @@
                 <span class="text-gray-600">|</span>
                 <a href="https://dev.wrestling.systems/privacypolicy/" target="_blank" rel="noopener noreferrer" class="hover:text-gold-300 transition-colors">Privacy Policy</a>
             </div>
-            <p>&copy; 2025 Wrestling.Systems. All Rights Reserved.</p>
+            <p class="text-xs mt-2">&copy; 2025 Wrestling.Systems. All Rights Reserved.</p>
         </footer>
     </div>
 
     <!-- Firebase SDK -->
     <script type="module">
-        // Import the functions you need from the SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { 
             getAuth, 
@@ -136,16 +134,11 @@
             OAuthProvider,
             signInWithPopup,
             onAuthStateChanged,
-            signOut,
-            linkWithCredential,
-            linkWithPopup,
-            fetchSignInMethodsForEmail,
-            setPersistence,
-            browserLocalPersistence
+            signOut
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase configuration - DEVELOPMENT PROJECT (SAFE)
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDUKOn5OKq9XYwJF-loJ-1E8_P4jaCvnUM",
             authDomain: "wrestling-systems-dev.firebaseapp.com",
@@ -160,186 +153,86 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Initialize Firebase Auth with explicit persistence and debugging
-        const initializeAuth = async () => {
-            console.log("Setting Firebase Auth persistence to LOCAL...");
-            try {
-                await setPersistence(auth, browserLocalPersistence);
-                console.log("✅ Firebase Auth persistence set to LOCAL");
-                
-                // Verify the persistence setting worked
-                console.log("Auth persistence state:", auth.config?.persistence);
-                
-            } catch (persistenceError) {
-                console.error("❌ Failed to set persistence:", persistenceError);
-                console.log("Continuing with default persistence...");
-            }
-            
-            // Debug: Check current Firebase project and auth domain
-            console.log("🔧 Firebase Auth Configuration:");
-            console.log("- Project ID:", firebaseConfig.projectId);
-            console.log("- Auth Domain:", firebaseConfig.authDomain);
-            console.log("- App Check enabled:", !!auth.app.options.appCheckOptions);
-            
-            // Test Firebase auto-linking configuration
-            console.log("🔍 FIREBASE AUTO-LINKING TEST:");
-            console.log("If 'One account per email address' is enabled, you should NEVER see auth/account-exists-with-different-credential errors");
-            console.log("If you see those errors, the setting may not be properly configured");
-            console.log("Check: https://console.firebase.google.com/project/wrestling-systems-dev/authentication/settings");
+        // Initialize Auth Providers
+        const googleProvider = new GoogleAuthProvider();
+        const facebookProvider = new FacebookAuthProvider();
+        const microsoftProvider = new OAuthProvider('microsoft.com');
+        microsoftProvider.addScope('openid');
+        microsoftProvider.addScope('email');
+        microsoftProvider.addScope('profile');
+        
+        // DOM Elements
+        const loginContainer = document.getElementById('login-container');
+        const userStatusDiv = document.getElementById('user-status');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const signOutBtn = document.getElementById('signout-btn');
+        const signinForm = document.getElementById('signin-form');
+        const submitButton = document.getElementById('submit-button');
+        const errorMessage = document.getElementById('error-message');
+        
+        // Show error messages
+        const showError = (message) => {
+            errorMessage.innerHTML = message;
         };
-        
-        // Initialize persistence
-        initializeAuth();
-        
-        // Database-level persistence for account linking
-        const storeAccountLinkingInDatabase = async (user, linkedProvider) => {
+
+        // Handle successful authentication
+        const handleAuthSuccess = (result) => {
+            console.log("Authentication successful:", result.user);
+            
+            // Store user data in Firestore
+            storeUserInDatabase(result.user);
+            
+            // Redirect to dashboard
+            window.location.href = "https://dev.wrestling.systems/dashboard/";
+        };
+
+        // Store user data in database
+        const storeUserInDatabase = async (user) => {
             try {
-                console.log("📝 Storing account linking data in Firestore...");
-                
                 const userDocRef = doc(db, 'users', user.uid);
-                
-                // Get current user data
-                const userDoc = await getDoc(userDocRef);
-                const existingData = userDoc.exists() ? userDoc.data() : {};
-                
-                // Prepare linked providers data
-                const linkedProviders = user.providerData.map(provider => ({
-                    providerId: provider.providerId,
-                    uid: provider.uid,
-                    email: provider.email,
-                    displayName: provider.displayName,
-                    photoURL: provider.photoURL,
-                    linkedAt: serverTimestamp()
-                }));
-                
-                // Store comprehensive user data with linked providers
                 const userData = {
                     uid: user.uid,
                     email: user.email,
                     displayName: user.displayName,
                     photoURL: user.photoURL,
                     emailVerified: user.emailVerified,
-                    linkedProviders: linkedProviders,
-                    lastUpdated: serverTimestamp(),
-                    accountLinkingHistory: [
-                        ...(existingData.accountLinkingHistory || []),
-                        {
-                            action: 'provider_linked',
-                            providerId: linkedProvider,
-                            timestamp: serverTimestamp(),
-                            totalProviders: linkedProviders.length
-                        }
-                    ]
+                    linkedProviders: user.providerData.map(provider => ({
+                        providerId: provider.providerId,
+                        uid: provider.uid,
+                        email: provider.email,
+                        displayName: provider.displayName,
+                        photoURL: provider.photoURL
+                    })),
+                    lastSignIn: serverTimestamp(),
+                    lastUpdated: serverTimestamp()
                 };
                 
                 await setDoc(userDocRef, userData, { merge: true });
-                
-                console.log("✅ Account linking data stored in Firestore:", {
-                    uid: user.uid,
-                    providers: linkedProviders.map(p => p.providerId),
-                    totalLinked: linkedProviders.length
-                });
-                
-                return true;
-            } catch (firestoreError) {
-                console.error("❌ Failed to store linking data in Firestore:", firestoreError);
-                return false;
-            }
-        };
-        
-        // Check if user has linked providers in database
-        const checkLinkedProvidersInDatabase = async (userUid) => {
-            try {
-                const userDocRef = doc(db, 'users', userUid);
-                const userDoc = await getDoc(userDocRef);
-                
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    return userData.linkedProviders || [];
-                }
-                return [];
+                console.log("✅ User data stored in Firestore");
             } catch (error) {
-                console.error("Error checking linked providers in database:", error);
-                return [];
+                console.error("❌ Failed to store user data:", error);
             }
         };
-        
-        // Initialize Auth Providers
-        const googleProvider = new GoogleAuthProvider();
-        const facebookProvider = new FacebookAuthProvider();
-        const microsoftProvider = new OAuthProvider('microsoft.com');
 
-        // Get form elements
-        const signinForm = document.getElementById('signin-form');
-        const errorMessage = document.getElementById('error-message');
-        const submitButton = document.getElementById('submit-button');
-        const googleSignInButton = document.getElementById('google-signin');
-        const facebookSignInButton = document.getElementById('facebook-signin');
-        const microsoftSignInButton = document.getElementById('microsoft-signin');
-        const loginContainer = document.getElementById('login-container');
-        const userStatusDiv = document.getElementById('user-status');
-        const signOutBtn = document.getElementById('signout-btn');
-
-        // Helper Functions
-        const handleAuthSuccess = (userCredential) => {
-            console.log('User signed in successfully:', userCredential.user.uid);
-            window.location.href = "https://dev.wrestling.systems/dashboard/";
-        };
-
-        const showError = (message, errorObj = null) => {
-            errorMessage.innerHTML = message;
-            if (errorObj) console.error("Sign-in Error:", errorObj.code, errorObj.message);
-        };
-
-        // Function to check if user was just logged out (prevent redirect loop)
+        // Check if user was just logged out (prevent redirect loop)
         const isJustLoggedOut = () => {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get('logout') === 'true';
         };
         
-        // Check for pending credential on page load
-        window.addEventListener('load', () => {
-            const pendingData = sessionStorage.getItem('pendingCredential');
-            if (pendingData && !isJustLoggedOut()) {
-                const { email, providerId } = JSON.parse(pendingData);
-                const providerName = providerId.split('.')[0];
-                
-                // Pre-fill email only - no message since we use modal system now
-                const emailInput = signinForm.email;
-                if (emailInput) {
-                    emailInput.value = email;
-                }
-                
-                // Optional: Could add a subtle indicator in the email field placeholder
-                if (emailInput) {
-                    emailInput.placeholder = `${email} (ready to link ${providerName})`;
-                }
-            }
-        });
-        
         // Auth State Listener
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             const justLoggedOut = isJustLoggedOut();
             
             if (user && !justLoggedOut) {
-                // Debug: Check what providers this user has linked
-                console.log("=== USER ALREADY SIGNED IN ===");
-                console.log("User UID:", user.uid);
-                console.log("User email:", user.email);
-                console.log("User's linked providers:", user.providerData.map(p => ({
-                    providerId: p.providerId,
-                    email: p.email,
-                    displayName: p.displayName
-                })));
-                
-                // User is already signed in, redirect to dashboard (unless just logged out)
+                console.log("User signed in:", user.email);
+                console.log("Linked providers:", user.providerData.map(p => p.providerId));
                 window.location.href = "https://dev.wrestling.systems/dashboard/";
             } else {
-                // User is signed out or just logged out
                 loginContainer.classList.remove('hidden');
                 userStatusDiv.classList.add('hidden');
                 
-                // Clear logout parameter from URL after a moment
                 if (justLoggedOut) {
                     setTimeout(() => {
                         window.history.replaceState({}, document.title, '/login/');
@@ -348,657 +241,85 @@
             }
         });
 
-        // Event Listeners
-        signOutBtn.addEventListener('click', () => {
-            signOut(auth).catch(error => console.error("Sign out error:", error));
-        });
-
-        // Handle Email/Password form submission with account linking support
-        signinForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            submitButton.disabled = true;
-            submitButton.textContent = 'Signing In...';
-            errorMessage.textContent = '';
-            const { email, password } = signinForm;
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
-                
-                // Check for pending credential from OAuth linking
-                const pendingData = sessionStorage.getItem('pendingCredential');
-                if (pendingData) {
-                    const credentialData = JSON.parse(pendingData);
-                    console.log("Email sign-in with pending credential:", credentialData);
-                    
-                    // Only link if the email matches
-                    if (credentialData.email === email.value) {
-                        try {
-                            showError("Linking your OAuth account...");
-                            
-                            // Reconstruct the credential for linking
-                            let linkCredential;
-                            if (credentialData.providerId === 'google.com') {
-                                linkCredential = GoogleAuthProvider.credential(credentialData.idToken, credentialData.accessToken);
-                            } else if (credentialData.providerId === 'facebook.com') {
-                                linkCredential = FacebookAuthProvider.credential(credentialData.accessToken);
-                            } else if (credentialData.providerId === 'microsoft.com') {
-                                linkCredential = new OAuthProvider('microsoft.com').credential({
-                                    idToken: credentialData.idToken,
-                                    accessToken: credentialData.accessToken
-                                });
-                            }
-                            
-                            console.log("Email sign-in reconstructed credential:", linkCredential);
-                            
-                            if (linkCredential) {
-                                console.log("Linking credential via email sign-in...");
-                                const linkedResult = await linkWithCredential(userCredential.user, linkCredential);
-                                console.log("Email sign-in link successful:", linkedResult);
-                                
-                                sessionStorage.removeItem('pendingCredential');
-                                
-                                const linkedProviders = userCredential.user.providerData.map(p => p.providerId);
-                                showError(`✅ Accounts linked successfully! You can now sign in with ${linkedProviders.join(', ')}. Redirecting...`);
-                                setTimeout(() => {
-                                    handleAuthSuccess(userCredential);
-                                }, 2000);
-                                return;
-                            }
-                        } catch (linkError) {
-                            console.error("Email sign-in linking failed:", linkError);
-                            sessionStorage.removeItem('pendingCredential');
-                            
-                            if (linkError.code === 'auth/provider-already-linked') {
-                                showError("✅ Accounts already linked! Redirecting...");
-                                setTimeout(() => {
-                                    handleAuthSuccess(userCredential);
-                                }, 1500);
-                                return;
-                            }
-                            // If linking fails, just continue with normal sign-in
-                        }
-                    }
-                }
-                
-                // Normal sign-in flow
-                handleAuthSuccess(userCredential);
-            } catch (error) {
-                let friendlyMessage = "An unexpected error occurred.";
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                    friendlyMessage = 'Invalid email or password.';
-                } else if (error.code.includes('app-check')) {
-                    friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
-                } else if (error.code === 'auth/unauthorized-domain') {
-                    friendlyMessage = 'Authentication domain not authorized. Please contact support.';
-                }
-                showError(friendlyMessage, error);
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'Sign In';
-            }
-        });
-        
-        // Enhanced Social Sign-in Handler with automatic account linking
-        const handleSocialSignIn = async (provider, button) => {
-            errorMessage.textContent = '';
+        // Handle OAuth sign-in
+        const handleOAuthSignIn = async (provider, button) => {
             button.disabled = true;
-            
-            // Check if we have verification data from previous linking attempt
-            const verificationData = localStorage.getItem('linkingVerification');
-            if (verificationData) {
-                const data = JSON.parse(verificationData);
-                console.log("=== PREVIOUS LINKING VERIFICATION ===");
-                console.log("Found previous linking attempt:", data);
-                console.log(`Testing if ${provider.providerId} was successfully linked to user ${data.userUid}`);
-                
-                if (data.testProvider === provider.providerId) {
-                    console.log("🧪 This is the PERSISTENCE TEST for the linked provider!");
-                    console.log("If linking worked, this OAuth should succeed without showing modal");
-                }
-            }
-            
-            // Debug: Let's see what providers this user already has
-            console.log("=== OAUTH SIGN-IN ATTEMPT ===");
-            console.log("Trying provider:", provider.providerId);
+            errorMessage.textContent = '';
             
             try {
+                console.log(`Attempting ${provider.providerId} sign-in...`);
                 const result = await signInWithPopup(auth, provider);
                 
-                // If we had verification data and this succeeded, linking worked!
-                if (verificationData) {
-                    const data = JSON.parse(verificationData);
-                    if (data.testProvider === provider.providerId) {
-                        console.log("🎉 LINKING VERIFICATION SUCCESSFUL!");
-                        console.log("The account linking worked - user can sign in with linked provider!");
-                        localStorage.removeItem('linkingVerification');
-                    }
-                }
-                
-                // Check and sync database-stored linked providers
-                console.log("🔍 Checking for linked providers in database...");
-                const dbProviders = await checkLinkedProvidersInDatabase(result.user.uid);
-                const dbProviderIds = dbProviders.map(p => p.providerId);
-                const authProviderIds = result.user.providerData.map(p => p.providerId);
-                
-                console.log("Firebase Auth providers:", authProviderIds);
-                console.log("Database providers:", dbProviderIds);
-                
-                // Detect discrepancy between Firebase Auth and database
-                const onlyInDb = dbProviderIds.filter(pid => !authProviderIds.includes(pid));
-                const onlyInAuth = authProviderIds.filter(pid => !dbProviderIds.includes(pid));
-                
-                if (onlyInDb.length > 0) {
-                    console.warn("🚨 PROVIDERS ONLY IN DATABASE:", onlyInDb);
-                    console.warn("This indicates Firebase Auth account linking is not working!");
-                }
-                
-                if (onlyInAuth.length > 0) {
-                    console.log("📝 Updating database with providers only in Firebase Auth:", onlyInAuth);
-                    await storeAccountLinkingInDatabase(result.user, onlyInAuth[0]);
-                }
-                
-                console.log("=== SUCCESSFUL OAUTH SIGN-IN ===");
-                console.log("Provider used:", provider.providerId);
-                console.log("User UID:", result.user.uid);
-                console.log("User email:", result.user.email);
-                console.log("User's current providers:", result.user.providerData.map(p => ({
-                    providerId: p.providerId,
-                    email: p.email,
-                    uid: p.uid
-                })));
-                
-                // Key question: If this user previously linked accounts, should we see multiple providers here?
-                const providerCount = result.user.providerData.length;
-                console.log(`User has ${providerCount} linked provider(s)`);
-                
-                if (providerCount > 1) {
-                    console.log("✅ ACCOUNT LINKING IS WORKING - Multiple providers found!");
-                } else {
-                    console.log("❌ Account linking may not be persisting - Only 1 provider found");
-                }
+                console.log(`${provider.providerId} sign-in successful:`, result.user);
+                console.log("Linked providers:", result.user.providerData.map(p => p.providerId));
                 
                 handleAuthSuccess(result);
             } catch (error) {
-                let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
+                console.error(`${provider.providerId} sign-in error:`, error);
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    console.error("🚨 FIREBASE AUTO-LINKING IS NOT WORKING!");
-                    console.error("You should NOT see this error if 'link accounts that use the same email' is enabled in Firebase Console");
-                    console.error("Check: https://console.firebase.google.com/project/wrestling-systems-dev/authentication/settings");
-                    console.error("Look for: 'Multiple accounts per email address' -> Should be DISABLED");
-                    console.error("And: 'One account per email address' -> Should be ENABLED");
-                    
-                    // This error indicates the Firebase setting is not properly configured
-                    // First check if user is already signed in and has this provider linked
-                    if (auth.currentUser) {
-                        const currentProviders = auth.currentUser.providerData.map(p => p.providerId);
-                        console.log("User already signed in with providers:", currentProviders);
-                        
-                        // Also check database for linked providers
-                        const dbProviders = await checkLinkedProvidersInDatabase(auth.currentUser.uid);
-                        const dbProviderIds = dbProviders.map(p => p.providerId);
-                        console.log("Database shows linked providers:", dbProviderIds);
-                        
-                        if (currentProviders.includes(provider.providerId) || dbProviderIds.includes(provider.providerId)) {
-                            console.log("🎉 Provider already linked! (Firebase Auth or Database)");
-                            
-                            // If it's in database but not Firebase Auth, this indicates Firebase Auth linking is broken
-                            if (dbProviderIds.includes(provider.providerId) && !currentProviders.includes(provider.providerId)) {
-                                console.error("🚨 CRITICAL: Provider linked in database but NOT in Firebase Auth!");
-                                console.error("This confirms Firebase Auth account linking is not persisting!");
-                            }
-                            
-                            await auth.currentUser.reload();
-                            handleAuthSuccess({ user: auth.currentUser });
-                            return;
-                        }
-                    }
-                    
-                    // Implement automatic account linking for better UX
                     const email = error.customData?.email;
-                    const credential = getCredentialFromError(error, provider);
-                    const providerName = provider.providerId.split('.')[0];
-                    
-                    console.log("=== OAUTH ACCOUNT CONFLICT DETECTED ===");
-                    console.log(`${providerName} OAuth conflict for email:`, email);
-                    console.log("Error details:", error);
-                    console.log("Extracted credential:", credential);
-                    
-                    if (email && credential) {
-                        try {
-                            // Store the credential data for linking after successful sign-in
-                            // Firebase credentials have different structures per provider
-                            let credentialData = {
-                                providerId: provider.providerId,
-                                email: email
-                            };
-                            
-                            // Extract tokens based on provider type
-                            if (provider.providerId === 'google.com') {
-                                credentialData.accessToken = credential.accessToken;
-                                credentialData.idToken = credential.idToken;
-                            } else if (provider.providerId === 'facebook.com') {
-                                credentialData.accessToken = credential.accessToken;
-                            } else if (provider.providerId === 'microsoft.com') {
-                                credentialData.accessToken = credential.accessToken;
-                                credentialData.idToken = credential.idToken;
-                            }
-                            
-                            console.log("Raw credential object:", credential);
-                            console.log("Credential properties:", Object.keys(credential));
-                            console.log("Access token:", credential.accessToken);
-                            console.log("ID token:", credential.idToken);
-                            console.log("Storing credential data:", credentialData);
-                            
-                            // Make sure we have required tokens
-                            if (!credentialData.accessToken && !credentialData.idToken) {
-                                throw new Error("No valid tokens found in credential object");
-                            }
-                            
-                            sessionStorage.setItem('pendingCredential', JSON.stringify(credentialData));
-                            
-                            // Create modal overlay and dialog
-                            const modalHtml = `
-                                <!-- Modal Overlay -->
-                                <div id="link-modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" style="animation: fadeIn 0.2s ease-out;">
-                                    <!-- Modal Content -->
-                                    <div class="bg-gray-800/95 backdrop-blur-md border border-gray-700 rounded-2xl shadow-2xl max-w-lg w-full mx-auto" style="animation: slideUp 0.3s ease-out;">
-                                        <!-- Header -->
-                                        <div class="bg-gradient-to-r from-gold-500/10 to-gold-600/5 border-b border-gray-700 p-6 rounded-t-2xl">
-                                            <div class="flex items-center">
-                                                <div class="w-12 h-12 bg-gold-500/20 rounded-full flex items-center justify-center mr-4">
-                                                    <svg class="w-6 h-6 text-gold-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <path d="M17 11h-4l-1-1H8a2 2 0 0 0-2 2v5c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-5h-1z"/>
-                                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <h3 class="text-xl font-bold text-white">Link Your Accounts</h3>
-                                                    <p class="text-sm text-gray-400">Connect your ${providerName} account</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Content -->
-                                        <div class="p-6">
-                                            <div class="mb-6">
-                                                <p class="text-gray-300 mb-2">
-                                                    You already have an account with <span class="font-semibold text-white">${email}</span>
-                                                </p>
-                                                <p class="text-gray-400 text-sm">
-                                                    Sign in with your existing method to automatically link your <span class="font-semibold text-gold-300">${providerName}</span> account:
-                                                </p>
-                                            </div>
-                                            
-                                            <!-- Provider Buttons -->
-                                            <div class="grid grid-cols-2 gap-3 mb-6">
-                                                <button id="link-google" class="group bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gold-500/50 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-gray-800">
-                                                    <svg class="w-4 h-4 mr-2 text-gold-300 group-hover:scale-110 transition-transform" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
-                                                    Google
-                                                </button>
-                                                <button id="link-facebook" class="group bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gold-500/50 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-gray-800">
-                                                    <svg class="w-4 h-4 mr-2 text-gold-300 group-hover:scale-110 transition-transform" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>
-                                                    Facebook
-                                                </button>
-                                                <button id="link-microsoft" class="group bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gold-500/50 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-gray-800">
-                                                    <svg class="w-4 h-4 mr-2 text-gold-300 group-hover:scale-110 transition-transform" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>
-                                                    Microsoft
-                                                </button>
-                                                <button id="link-email" class="group bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gold-500/50 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-gray-800">
-                                                    <svg class="w-4 h-4 mr-2 text-gold-300 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                                    Email
-                                                </button>
-                                            </div>
-                                            
-                                            <!-- Info Footer -->
-                                            <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-3">
-                                                <p class="text-xs text-gray-400 flex items-center">
-                                                    <svg class="w-3 h-3 mr-2 text-gold-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <circle cx="12" cy="12" r="10"/>
-                                                        <path d="M12 16v-4"/>
-                                                        <path d="M12 8h.01"/>
-                                                    </svg>
-                                                    After signing in, your ${providerName} account will be linked automatically.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Close Button -->
-                                        <button id="close-link-modal" class="absolute top-4 right-4 w-8 h-8 bg-gray-700/80 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-gold-500">
-                                            <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <style>
-                                    @keyframes fadeIn {
-                                        from { opacity: 0; }
-                                        to { opacity: 1; }
-                                    }
-                                    @keyframes slideUp {
-                                        from { opacity: 0; transform: translateY(20px) scale(0.95); }
-                                        to { opacity: 1; transform: translateY(0) scale(1); }
-                                    }
-                                </style>
-                            `;
-                            
-                            // Insert modal into page
-                            document.body.insertAdjacentHTML('beforeend', modalHtml);
-                            
-                            // Clear error message area since we're using a modal now
-                            errorMessage.innerHTML = '';
-                            
-                            // Add click handlers for linking buttons
-                            setTimeout(() => {
-                                // Close modal functionality
-                                const closeModal = () => {
-                                    const modal = document.getElementById('link-modal-overlay');
-                                    if (modal) {
-                                        modal.style.animation = 'fadeOut 0.2s ease-in';
-                                        setTimeout(() => modal.remove(), 200);
-                                    }
-                                };
-                                
-                                document.getElementById('close-link-modal')?.addEventListener('click', closeModal);
-                                document.getElementById('link-modal-overlay')?.addEventListener('click', (e) => {
-                                    if (e.target.id === 'link-modal-overlay') closeModal();
-                                });
-                                
-                                // Provider linking buttons
-                                document.getElementById('link-google')?.addEventListener('click', () => {
-                                    closeModal();
-                                    performAccountLink(googleProvider);
-                                });
-                                document.getElementById('link-facebook')?.addEventListener('click', () => {
-                                    closeModal();
-                                    performAccountLink(facebookProvider);
-                                });
-                                document.getElementById('link-microsoft')?.addEventListener('click', () => {
-                                    closeModal();
-                                    performAccountLink(microsoftProvider);
-                                });
-                                document.getElementById('link-email')?.addEventListener('click', () => {
-                                    closeModal();
-                                    // Pre-fill email and focus the field
-                                    signinForm.email.value = email;
-                                    signinForm.email.placeholder = `${email} (ready to link ${providerName})`;
-                                    
-                                    // Focus the password field since email is pre-filled
-                                    signinForm.password.focus();
-                                });
-                                
-                                // Add fadeOut animation style
-                                const style = document.createElement('style');
-                                style.textContent = `
-                                    @keyframes fadeOut {
-                                        from { opacity: 1; }
-                                        to { opacity: 0; }
-                                    }
-                                `;
-                                document.head.appendChild(style);
-                            }, 100);
-                            
-                        } catch (linkError) {
-                            console.error("Account linking setup failed:", linkError);
-                            showError(`Account linking setup failed. Please sign in with your existing method for ${email}.`);
-                        }
-                    } else {
-                        friendlyMessage = `This email is already registered. Please sign in with your existing method.`;
-                        showError(friendlyMessage, error);
-                    }
-                    return;
-                } else if (error.code.includes('app-check')) {
-                    friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
-                } else if (error.code === 'auth/unauthorized-domain') {
-                    friendlyMessage = 'Authentication domain not authorized. Please contact support.';
-                } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                    friendlyMessage = '';
-                }
-                
-                if (friendlyMessage) {
-                    showError(friendlyMessage, error);
+                    showError(`An account with ${email} already exists. Please sign in with your existing method first, then Firebase will automatically link your accounts.`);
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    showError('Sign-in was cancelled. Please try again.');
+                } else if (error.code === 'auth/popup-blocked') {
+                    showError('Popup was blocked by your browser. Please allow popups for this site.');
+                } else {
+                    showError(`Sign-in failed. Please try again.`);
                 }
             } finally {
                 button.disabled = false;
             }
         };
 
-        // Get credential from error
-        const getCredentialFromError = (error, provider) => {
-            try {
-                if (provider.providerId === 'google.com') {
-                    return GoogleAuthProvider.credentialFromError(error);
-                } else if (provider.providerId === 'facebook.com') {
-                    return FacebookAuthProvider.credentialFromError(error);
-                } else if (provider.providerId === 'microsoft.com') {
-                    return OAuthProvider.credentialFromError(error);
-                }
-                return null;
-            } catch (credError) {
-                console.error("Error extracting credential:", credError);
-                return null;
-            }
-        };
+        // Event Listeners
+        signOutBtn.addEventListener('click', () => {
+            signOut(auth).catch(error => console.error("Sign out error:", error));
+        });
 
-        // Perform account linking after successful authentication
-        const performAccountLink = async (existingProvider) => {
+        // Email/Password form submission
+        signinForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitButton.disabled = true;
+            submitButton.textContent = 'Signing In...';
+            errorMessage.textContent = '';
+            
+            const { email, password } = signinForm;
+            
             try {
-                console.log("=== performAccountLink CALLED ===");
-                console.log("Existing provider:", existingProvider.providerId);
-                console.log("Current auth state:", auth.currentUser ? "signed in" : "signed out");
-                if (auth.currentUser) {
-                    console.log("Current user UID:", auth.currentUser.uid);
-                    console.log("Current user providers:", auth.currentUser.providerData.map(p => p.providerId));
-                }
+                const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
+                handleAuthSuccess(userCredential);
+            } catch (error) {
+                console.error("Email sign-in error:", error);
                 
-                // Check if we have pending credential
-                const pendingData = sessionStorage.getItem('pendingCredential');
-                console.log("Pending credential data:", pendingData);
-                
-                if (!pendingData) {
-                    throw new Error("No pending credential found - this should not happen!");
-                }
-                
-                showError("Signing in to link accounts...");
-                
-                // Sign in with the existing provider first
-                const result = await signInWithPopup(auth, existingProvider);
-                console.log("Signed in with existing provider:", result.user.uid);
-                
-                const credentialData = JSON.parse(pendingData);
-                console.log("Retrieved credential data:", credentialData);
-                
-                // Verify email matches to prevent cross-email linking
-                if (credentialData.email !== result.user.email) {
-                    throw new Error(`Email mismatch: trying to link ${credentialData.email} to ${result.user.email}`);
-                }
-                
-                // Check if the provider is already linked
-                const currentProviders = result.user.providerData.map(p => p.providerId);
-                console.log("User's current providers BEFORE linking:", currentProviders);
-                
-                if (currentProviders.includes(credentialData.providerId)) {
-                    console.log("🎉 Provider already linked! This account should work for both OAuth methods.");
-                    sessionStorage.removeItem('pendingCredential');
-                    showError(`✅ Accounts are already linked! You can sign in with ${currentProviders.join(', ')}. Redirecting...`);
-                    setTimeout(() => {
-                        window.location.href = '/dashboard/';
-                    }, 2000);
-                    return;
-                }
-                
-                // Now create the provider for the pending credential to link
-                let pendingProvider;
-                if (credentialData.providerId === 'google.com') {
-                    pendingProvider = new GoogleAuthProvider();
-                } else if (credentialData.providerId === 'facebook.com') {
-                    pendingProvider = new FacebookAuthProvider();
-                } else if (credentialData.providerId === 'microsoft.com') {
-                    pendingProvider = new OAuthProvider('microsoft.com');
-                    pendingProvider.addScope('openid');
-                    pendingProvider.addScope('email');
-                    pendingProvider.addScope('profile');
-                }
-                
-                if (!pendingProvider) {
-                    throw new Error("Could not create provider for linking");
-                }
-                
-                console.log("=== ATTEMPTING ACCOUNT LINKING ===");
-                console.log("Target user UID:", result.user.uid);
-                console.log("Target user email:", result.user.email);
-                console.log("Target user current providers:", result.user.providerData.map(p => p.providerId));
-                console.log("Provider to link:", credentialData.providerId);
-                
-                // Use linkWithPopup instead of linkWithCredential for better reliability
-                showError("Linking accounts with new provider...");
-                console.log("About to call linkWithPopup with:", {
-                    user: result.user.uid,
-                    provider: credentialData.providerId,
-                    currentProviders: result.user.providerData.map(p => p.providerId)
-                });
-                
-                let linkedResult;
-                try {
-                    linkedResult = await linkWithPopup(result.user, pendingProvider);
-                    console.log("linkWithPopup SUCCESS - Raw result:", linkedResult);
-                } catch (popupError) {
-                    console.error("linkWithPopup FAILED:", popupError);
-                    if (popupError.code === 'auth/popup-closed-by-user') {
-                        showError("Account linking cancelled. Please try again.");
-                        return;
-                    } else if (popupError.code === 'auth/popup-blocked') {
-                        showError("Popup was blocked by browser. Please allow popups for this site and try again.");
-                        return;
-                    } else if (popupError.code === 'auth/cancelled-popup-request') {
-                        showError("Account linking was cancelled. Please try again.");
-                        return;
-                    }
-                    throw popupError; // Re-throw other errors
-                }
-                
-                console.log("=== LINKING SUCCESSFUL ===");
-                console.log("Linked result:", linkedResult);
-                console.log("Linked user UID:", linkedResult.user.uid);
-                console.log("Linked user email:", linkedResult.user.email);
-                
-                // Verify the link worked by checking user's provider data
-                const linkedProviders = linkedResult.user.providerData.map(p => p.providerId);
-                console.log("User NOW has providers:", linkedProviders);
-                console.log("Provider data details:", linkedResult.user.providerData);
-                
-                // Critical test: Check if Firebase user object shows the linking
-                console.log("=== FIREBASE USER VERIFICATION ===");
-                console.log("User metadata:", linkedResult.user.metadata);
-                console.log("User token claims:", await linkedResult.user.getIdTokenResult());
-                
-                // Critical: Force token refresh and user reload to sync provider data
-                console.log("🔄 Forcing user token refresh and reload...");
-                await linkedResult.user.reload();
-                
-                // Also refresh the ID token to ensure provider data is current
-                try {
-                    const refreshedToken = await linkedResult.user.getIdToken(true); // Force refresh
-                    console.log("✅ Token refreshed successfully");
-                } catch (tokenError) {
-                    console.error("❌ Token refresh failed:", tokenError);
-                }
-                
-                console.log("After reload - providers:", linkedResult.user.providerData.map(p => p.providerId));
-                
-                // Check current auth state
-                console.log("Current auth user:", auth.currentUser);
-                console.log("Current auth user providers:", auth.currentUser?.providerData.map(p => p.providerId));
-                
-                // CRITICAL: Store linking data in Firestore as backup
-                console.log("💾 STORING ACCOUNT LINKING IN DATABASE...");
-                const firestoreStored = await storeAccountLinkingInDatabase(linkedResult.user, credentialData.providerId);
-                
-                if (firestoreStored) {
-                    console.log("✅ Account linking backed up to Firestore - data will persist even if Firebase Auth fails");
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showError('Invalid email or password. Please try again.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showError('Too many failed attempts. Please try again later.');
                 } else {
-                    console.error("❌ Failed to backup linking data to Firestore - relying on Firebase Auth only");
+                    showError('Sign-in failed. Please try again.');
                 }
-                
-                // Firebase Console Investigation Helper
-                console.log("=== FIREBASE CONSOLE INVESTIGATION ===");
-                console.log("🔍 CHECK FIREBASE CONSOLE:");
-                console.log(`1. Go to: https://console.firebase.google.com/project/wrestling-systems-dev/authentication/users`);
-                console.log(`2. Find user: ${linkedResult.user.uid}`);
-                console.log(`3. Check 'Sign-in providers' column`);
-                console.log(`4. Should show: Facebook, Microsoft`);
-                console.log("If Firebase Console only shows ONE provider, then linkWithPopup is failing silently!");
-                
-                // CRITICAL: Test if we can sign out and back in with the linked provider
-                console.log("=== PERSISTENCE TEST ===");
-                console.log("🧪 NEXT STEPS TO VERIFY LINKING:");
-                console.log("1. Sign out completely");
-                console.log("2. Try signing in with Microsoft again");
-                console.log("3. If you see the linking modal = LINKING FAILED");
-                console.log("4. If you go straight to dashboard = LINKING WORKED");
-                
-                // Store verification data for next sign-in
-                const verificationData = {
-                    timestamp: Date.now(),
-                    userUid: linkedResult.user.uid,
-                    linkedProviders: linkedProviders,
-                    testProvider: credentialData.providerId
-                };
-                localStorage.setItem('linkingVerification', JSON.stringify(verificationData));
-                console.log("Stored verification data for next sign-in test:", verificationData);
-                
-                // Let's also check if the user has multiple provider data entries
-                console.log("=== DETAILED PROVIDER ANALYSIS ===");
-                linkedResult.user.providerData.forEach((provider, index) => {
-                    console.log(`Provider ${index + 1}:`, {
-                        providerId: provider.providerId,
-                        uid: provider.uid,
-                        email: provider.email,
-                        displayName: provider.displayName
-                    });
-                });
-                
-                // Clean up
-                sessionStorage.removeItem('pendingCredential');
-                
-                showError(`✅ Accounts linked successfully! You can now sign in with ${linkedProviders.join(', ')}. Redirecting...`);
-                setTimeout(() => {
-                    handleAuthSuccess(result);
-                }, 2000);
-                
-            } catch (linkError) {
-                console.error("=== ACCOUNT LINKING FAILED ===");
-                console.error("Link error code:", linkError.code);
-                console.error("Link error message:", linkError.message);
-                console.error("Full link error:", linkError);
-                
-                sessionStorage.removeItem('pendingCredential');
-                
-                if (linkError.code === 'auth/provider-already-linked') {
-                    console.log("Provider already linked - this should mean linking worked previously");
-                    showError("✅ Accounts already linked! Redirecting...");
-                    setTimeout(() => {
-                        window.location.href = '/dashboard/';
-                    }, 1500);
-                } else if (linkError.code === 'auth/credential-already-in-use') {
-                    console.log("Credential already in use - this suggests separate user accounts exist");
-                    showError("This Microsoft account is already linked to a different user account. Please use a different Microsoft account or contact support.");
-                } else if (linkError.code === 'auth/invalid-credential') {
-                    console.log("Invalid credential - token may have expired or be malformed");
-                    showError("The Microsoft credential has expired. Please try signing in with Microsoft again.");
-                } else {
-                    console.log("Unknown linking error - this is the core issue");
-                    showError(`Account linking failed: ${linkError.message}. You can still use your existing account to sign in.`);
-                }
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Sign In';
             }
-        };
+        });
 
-        // Attach event listeners
-        googleSignInButton.addEventListener('click', () => handleSocialSignIn(googleProvider, googleSignInButton));
-        facebookSignInButton.addEventListener('click', () => handleSocialSignIn(facebookProvider, facebookSignInButton));
-        microsoftSignInButton.addEventListener('click', () => handleSocialSignIn(microsoftProvider, microsoftSignInButton));
+        // OAuth button event listeners
+        document.getElementById('google-signin').addEventListener('click', (e) => {
+            handleOAuthSignIn(googleProvider, e.target);
+        });
+
+        document.getElementById('facebook-signin').addEventListener('click', (e) => {
+            handleOAuthSignIn(facebookProvider, e.target);
+        });
+
+        document.getElementById('microsoft-signin').addEventListener('click', (e) => {
+            handleOAuthSignIn(microsoftProvider, e.target);
+        });
+
+        console.log("🔧 Simplified login page loaded - relying on Firebase auto-linking");
+        console.log("If 'One account per email address' is enabled in Firebase Console, account linking should be automatic");
     </script>
 </body>
 </html>
