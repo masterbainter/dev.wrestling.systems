@@ -134,7 +134,9 @@
             OAuthProvider,
             signInWithPopup,
             onAuthStateChanged,
-            signOut
+            signOut,
+            linkWithCredential,
+            fetchSignInMethodsForEmail
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -258,8 +260,8 @@
                 console.error(`${provider.providerId} sign-in error:`, error);
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    const email = error.customData?.email;
-                    showError(`An account with ${email} already exists. Please sign in with your existing method first, then Firebase will automatically link your accounts.`);
+                    // Handle account linking - this is the proper Firebase pattern
+                    await handleAccountLinking(error, provider);
                 } else if (error.code === 'auth/popup-closed-by-user') {
                     showError('Sign-in was cancelled. Please try again.');
                 } else if (error.code === 'auth/popup-blocked') {
@@ -269,6 +271,201 @@
                 }
             } finally {
                 button.disabled = false;
+            }
+        };
+
+        // Handle account linking when account exists with different credential
+        const handleAccountLinking = async (error, newProvider) => {
+            try {
+                const email = error.customData?.email;
+                const pendingCredential = getCredentialFromError(error, newProvider);
+                
+                if (!email || !pendingCredential) {
+                    showError('Unable to link accounts. Please try signing in with your existing method.');
+                    return;
+                }
+
+                console.log(`Account linking needed for: ${email}`);
+                
+                // Check what sign-in methods are available for this email
+                let existingMethods = [];
+                try {
+                    existingMethods = await fetchSignInMethodsForEmail(auth, email);
+                } catch (fetchError) {
+                    console.warn('Could not fetch sign-in methods (email enumeration protection may be enabled)');
+                    // If we can't fetch methods, we'll show all options
+                    existingMethods = ['google.com', 'facebook.com', 'microsoft.com', 'password'];
+                }
+
+                console.log('Existing sign-in methods:', existingMethods);
+
+                // Show account linking UI
+                showAccountLinkingDialog(email, existingMethods, pendingCredential, newProvider);
+
+            } catch (linkError) {
+                console.error('Account linking setup error:', linkError);
+                showError('Unable to set up account linking. Please sign in with your existing method.');
+            }
+        };
+
+        // Get credential from error based on provider
+        const getCredentialFromError = (error, provider) => {
+            try {
+                if (provider.providerId === 'google.com') {
+                    return GoogleAuthProvider.credentialFromError(error);
+                } else if (provider.providerId === 'facebook.com') {
+                    return FacebookAuthProvider.credentialFromError(error);
+                } else if (provider.providerId === 'microsoft.com') {
+                    return OAuthProvider.credentialFromError(error);
+                }
+                return null;
+            } catch (credError) {
+                console.error("Error extracting credential:", credError);
+                return null;
+            }
+        };
+
+        // Show account linking dialog
+        const showAccountLinkingDialog = (email, existingMethods, pendingCredential, newProvider) => {
+            const newProviderName = newProvider.providerId.split('.')[0];
+            
+            // Create simple, clean linking dialog
+            const dialogHtml = `
+                <div id="linking-dialog" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div class="bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-auto p-6 border border-gray-700">
+                        <h3 class="text-xl font-bold text-white mb-4">Link Your Accounts</h3>
+                        
+                        <div class="mb-6">
+                            <p class="text-gray-300 mb-3">
+                                An account with <strong class="text-white">${email}</strong> already exists.
+                            </p>
+                            <p class="text-gray-400 text-sm">
+                                Sign in with your existing method below, and we'll automatically link your ${newProviderName} account.
+                            </p>
+                        </div>
+
+                        <div class="space-y-3 mb-6">
+                            ${getProviderButtons(existingMethods, pendingCredential)}
+                        </div>
+
+                        <button id="cancel-linking" class="w-full py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg text-sm transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', dialogHtml);
+            setupLinkingDialogEvents(pendingCredential);
+        };
+
+        // Generate provider buttons based on existing methods
+        const getProviderButtons = (methods, pendingCredential) => {
+            let buttons = [];
+            
+            if (methods.includes('google.com')) {
+                buttons.push(`
+                    <button class="link-provider-btn w-full flex items-center justify-center py-3 px-4 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-white transition-colors" data-provider="google">
+                        <svg class="w-5 h-5 mr-3 text-gold-300" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
+                        Continue with Google
+                    </button>
+                `);
+            }
+            
+            if (methods.includes('facebook.com')) {
+                buttons.push(`
+                    <button class="link-provider-btn w-full flex items-center justify-center py-3 px-4 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-white transition-colors" data-provider="facebook">
+                        <svg class="w-5 h-5 mr-3 text-gold-300" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>
+                        Continue with Facebook
+                    </button>
+                `);
+            }
+            
+            if (methods.includes('microsoft.com')) {
+                buttons.push(`
+                    <button class="link-provider-btn w-full flex items-center justify-center py-3 px-4 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-white transition-colors" data-provider="microsoft">
+                        <svg class="w-5 h-5 mr-3 text-gold-300" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>
+                        Continue with Microsoft
+                    </button>
+                `);
+            }
+            
+            if (methods.includes('password')) {
+                buttons.push(`
+                    <button class="link-provider-btn w-full flex items-center justify-center py-3 px-4 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-white transition-colors" data-provider="email">
+                        <svg class="w-5 h-5 mr-3 text-gold-300" viewBox="0 0 512 512"><path fill="currentColor" d="M502.3 190.8c3.9-3.1 9.7-.2 9.7 4.7V400c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V195.6c0-5 5.7-7.8 9.7-4.7 22.4 17.4 52.1 39.5 154.1 113.6 21.1 15.4 56.7 47.8 92.2 47.6 35.7.3 72-32.8 92.3-47.6 102-74.1 131.6-96.3 154-113.7zM256 320c23.2.4 56.6-29.2 73.4-41.4 132.7-96.3 142.8-104.7 173.4-128.7 5.8-4.5 9.2-11.5 9.2-18.9v-19c0-26.5-21.5-48-48-48H48C21.5 64 0 85.5 0 112v19c0 7.4 3.4 14.3 9.2 18.9 30.6 23.9 40.7 32.4 173.4 128.7 16.8 12.2 50.2 41.8 73.4 41.4z"></path></svg>
+                        Continue with Email & Password
+                    </button>
+                `);
+            }
+            
+            return buttons.join('');
+        };
+
+        // Setup event listeners for linking dialog
+        const setupLinkingDialogEvents = (pendingCredential) => {
+            const dialog = document.getElementById('linking-dialog');
+            
+            // Cancel button
+            document.getElementById('cancel-linking')?.addEventListener('click', () => {
+                dialog.remove();
+            });
+            
+            // Provider buttons
+            document.querySelectorAll('.link-provider-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const providerType = e.currentTarget.dataset.provider;
+                    await performAccountLinking(providerType, pendingCredential);
+                    dialog.remove();
+                });
+            });
+        };
+
+        // Perform the actual account linking
+        const performAccountLinking = async (providerType, pendingCredential) => {
+            try {
+                showError('Signing in to link accounts...');
+                
+                let existingResult;
+                
+                // Sign in with existing provider
+                if (providerType === 'google') {
+                    existingResult = await signInWithPopup(auth, googleProvider);
+                } else if (providerType === 'facebook') {
+                    existingResult = await signInWithPopup(auth, facebookProvider);
+                } else if (providerType === 'microsoft') {
+                    existingResult = await signInWithPopup(auth, microsoftProvider);
+                } else if (providerType === 'email') {
+                    // For email/password, we need to show the form
+                    showError('Please use the email/password form above to sign in, then try the other provider again.');
+                    return;
+                }
+                
+                if (!existingResult) return;
+                
+                // Link the pending credential to the existing account
+                showError('Linking accounts...');
+                const linkedResult = await linkWithCredential(existingResult.user, pendingCredential);
+                
+                console.log('✅ Accounts linked successfully:', linkedResult.user);
+                console.log('Linked providers:', linkedResult.user.providerData.map(p => p.providerId));
+                
+                showError('✅ Accounts linked! Redirecting...');
+                
+                // Store updated user data and redirect
+                handleAuthSuccess(linkedResult);
+                
+            } catch (linkError) {
+                console.error('Account linking failed:', linkError);
+                
+                if (linkError.code === 'auth/provider-already-linked') {
+                    showError('✅ Accounts already linked! Redirecting...');
+                    handleAuthSuccess({ user: auth.currentUser });
+                } else if (linkError.code === 'auth/credential-already-in-use') {
+                    showError('This account is already linked to a different user. Please use a different account.');
+                } else {
+                    showError('Account linking failed. Please try again or contact support.');
+                }
             }
         };
 
