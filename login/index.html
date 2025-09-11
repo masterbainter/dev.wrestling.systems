@@ -214,6 +214,16 @@
             const justLoggedOut = isJustLoggedOut();
             
             if (user && !justLoggedOut) {
+                // Debug: Check what providers this user has linked
+                console.log("=== USER ALREADY SIGNED IN ===");
+                console.log("User UID:", user.uid);
+                console.log("User email:", user.email);
+                console.log("User's linked providers:", user.providerData.map(p => ({
+                    providerId: p.providerId,
+                    email: p.email,
+                    displayName: p.displayName
+                })));
+                
                 // User is already signed in, redirect to dashboard (unless just logged out)
                 window.location.href = "https://dev.wrestling.systems/dashboard/";
             } else {
@@ -323,8 +333,23 @@
         const handleSocialSignIn = async (provider, button) => {
             errorMessage.textContent = '';
             button.disabled = true;
+            
+            // Debug: Let's see what providers this user already has
+            console.log("=== OAUTH SIGN-IN ATTEMPT ===");
+            console.log("Trying provider:", provider.providerId);
+            
             try {
                 const result = await signInWithPopup(auth, provider);
+                
+                console.log("Sign-in successful!");
+                console.log("User UID:", result.user.uid);
+                console.log("User email:", result.user.email);
+                console.log("User's current providers:", result.user.providerData.map(p => ({
+                    providerId: p.providerId,
+                    email: p.email,
+                    uid: p.uid
+                })));
+                
                 handleAuthSuccess(result);
             } catch (error) {
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
@@ -335,7 +360,10 @@
                     const credential = getCredentialFromError(error, provider);
                     const providerName = provider.providerId.split('.')[0];
                     
+                    console.log("=== OAUTH ACCOUNT CONFLICT DETECTED ===");
                     console.log(`${providerName} OAuth conflict for email:`, email);
+                    console.log("Error details:", error);
+                    console.log("Extracted credential:", credential);
                     
                     if (email && credential) {
                         try {
@@ -580,13 +608,29 @@
                 }
                 
                 // Link the credential
-                console.log("Attempting to link credential to user:", result.user.uid);
+                console.log("=== ATTEMPTING ACCOUNT LINKING ===");
+                console.log("Target user UID:", result.user.uid);
+                console.log("Target user email:", result.user.email);
+                console.log("Target user current providers:", result.user.providerData.map(p => p.providerId));
+                console.log("Credential to link:", {
+                    providerId: credentialData.providerId,
+                    hasAccessToken: !!credentialData.accessToken,
+                    hasIdToken: !!credentialData.idToken
+                });
+                console.log("Reconstructed linkCredential:", linkCredential);
+                
                 const linkedResult = await linkWithCredential(result.user, linkCredential);
-                console.log("Link successful! Linked result:", linkedResult);
+                console.log("=== LINKING SUCCESSFUL ===");
+                console.log("Linked result:", linkedResult);
+                console.log("Linked user UID:", linkedResult.user.uid);
+                console.log("Linked user email:", linkedResult.user.email);
                 
                 // Verify the link worked by checking user's provider data
-                const linkedProviders = result.user.providerData.map(p => p.providerId);
-                console.log("User now has providers:", linkedProviders);
+                const linkedProviders = linkedResult.user.providerData.map(p => p.providerId);
+                console.log("User NOW has providers:", linkedProviders);
+                
+                // Let's also check what Firebase thinks about this user
+                console.log("Full user object after linking:", linkedResult.user);
                 
                 // Clean up
                 sessionStorage.removeItem('pendingCredential');
