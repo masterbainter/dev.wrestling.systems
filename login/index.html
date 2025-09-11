@@ -196,23 +196,16 @@
                 const { email, providerId } = JSON.parse(pendingData);
                 const providerName = providerId.split('.')[0];
                 
-                // Pre-fill email and show linking message
+                // Pre-fill email only - no message since we use modal system now
                 const emailInput = signinForm.email;
                 if (emailInput) {
                     emailInput.value = email;
                 }
                 
-                showError(`
-                    <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-4 text-left">
-                        <h3 class="font-semibold mb-2 text-green-300">🔗 Ready to Link</h3>
-                        <p class="text-sm text-green-200 mb-2">
-                            Your <strong>${providerName}</strong> account is ready to be linked with <strong>${email}</strong>.
-                        </p>
-                        <p class="text-sm text-green-300">
-                            Enter your password below to complete the account linking.
-                        </p>
-                    </div>
-                `);
+                // Optional: Could add a subtle indicator in the email field placeholder
+                if (emailInput) {
+                    emailInput.placeholder = `${email} (ready to link ${providerName})`;
+                }
             }
         });
         
@@ -471,19 +464,12 @@
                                 });
                                 document.getElementById('link-email')?.addEventListener('click', () => {
                                     closeModal();
-                                    // Pre-fill email and show linking message
+                                    // Pre-fill email and focus the field
                                     signinForm.email.value = email;
-                                    showError(`
-                                        <div class="bg-gray-900/50 border border-gold-500/30 rounded-lg p-4 text-left">
-                                            <h3 class="font-semibold mb-2 text-gold-300">🔗 Ready to Link</h3>
-                                            <p class="text-sm text-gray-300 mb-2">
-                                                Your <strong>${providerName}</strong> account is ready to be linked with <strong>${email}</strong>.
-                                            </p>
-                                            <p class="text-sm text-gray-400">
-                                                Enter your password below to complete the account linking.
-                                            </p>
-                                        </div>
-                                    `);
+                                    signinForm.email.placeholder = `${email} (ready to link ${providerName})`;
+                                    
+                                    // Focus the password field since email is pre-filled
+                                    signinForm.password.focus();
                                 });
                                 
                                 // Add fadeOut animation style
