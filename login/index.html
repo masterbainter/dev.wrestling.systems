@@ -278,7 +278,18 @@
                 console.log("Available methods:", methods);
                 
                 if (!methods || methods.length === 0) {
-                    throw new Error("No existing sign-in methods found");
+                    console.warn("⚠️ fetchSignInMethodsForEmail returned empty - using fallback approach");
+                    // Instead of failing, let's try a different approach
+                    showError(`
+                        <strong>Manual Account Linking</strong><br><br>
+                        We detected a conflict with <strong>${email}</strong> but couldn't automatically determine your existing sign-in method.<br><br>
+                        <strong>To link your accounts:</strong><br>
+                        1. Try signing in with <strong>Google, Facebook, Microsoft, or Email & Password</strong><br>
+                        2. Once signed in, try the ${newProviderName} OAuth again<br>
+                        3. Firebase will automatically link them<br><br>
+                        <em>This helps keep all your data together under one account.</em>
+                    `);
+                    return;
                 }
                 
                 // Show progress message
