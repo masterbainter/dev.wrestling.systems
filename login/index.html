@@ -334,12 +334,36 @@
             errorMessage.textContent = '';
             button.disabled = true;
             
+            // Check if we have verification data from previous linking attempt
+            const verificationData = localStorage.getItem('linkingVerification');
+            if (verificationData) {
+                const data = JSON.parse(verificationData);
+                console.log("=== PREVIOUS LINKING VERIFICATION ===");
+                console.log("Found previous linking attempt:", data);
+                console.log(`Testing if ${provider.providerId} was successfully linked to user ${data.userUid}`);
+                
+                if (data.testProvider === provider.providerId) {
+                    console.log("🧪 This is the PERSISTENCE TEST for the linked provider!");
+                    console.log("If linking worked, this OAuth should succeed without showing modal");
+                }
+            }
+            
             // Debug: Let's see what providers this user already has
             console.log("=== OAUTH SIGN-IN ATTEMPT ===");
             console.log("Trying provider:", provider.providerId);
             
             try {
                 const result = await signInWithPopup(auth, provider);
+                
+                // If we had verification data and this succeeded, linking worked!
+                if (verificationData) {
+                    const data = JSON.parse(verificationData);
+                    if (data.testProvider === provider.providerId) {
+                        console.log("🎉 LINKING VERIFICATION SUCCESSFUL!");
+                        console.log("The account linking worked - user can sign in with linked provider!");
+                        localStorage.removeItem('linkingVerification');
+                    }
+                }
                 
                 console.log("=== SUCCESSFUL OAUTH SIGN-IN ===");
                 console.log("Provider used:", provider.providerId);
@@ -736,7 +760,25 @@
                 console.log(`2. Find user: ${linkedResult.user.uid}`);
                 console.log(`3. Check 'Sign-in providers' column`);
                 console.log(`4. Should show: Facebook, Microsoft`);
-                console.log("If Firebase Console only shows ONE provider, then linkWithCredential is failing silently!");
+                console.log("If Firebase Console only shows ONE provider, then linkWithPopup is failing silently!");
+                
+                // CRITICAL: Test if we can sign out and back in with the linked provider
+                console.log("=== PERSISTENCE TEST ===");
+                console.log("🧪 NEXT STEPS TO VERIFY LINKING:");
+                console.log("1. Sign out completely");
+                console.log("2. Try signing in with Microsoft again");
+                console.log("3. If you see the linking modal = LINKING FAILED");
+                console.log("4. If you go straight to dashboard = LINKING WORKED");
+                
+                // Store verification data for next sign-in
+                const verificationData = {
+                    timestamp: Date.now(),
+                    userUid: linkedResult.user.uid,
+                    linkedProviders: linkedProviders,
+                    testProvider: credentialData.providerId
+                };
+                localStorage.setItem('linkingVerification', JSON.stringify(verificationData));
+                console.log("Stored verification data for next sign-in test:", verificationData);
                 
                 // Let's also check if the user has multiple provider data entries
                 console.log("=== DETAILED PROVIDER ANALYSIS ===");
