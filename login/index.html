@@ -137,11 +137,9 @@
             signInWithPopup,
             onAuthStateChanged,
             signOut,
-            fetchSignInMethodsForEmail,
             linkWithCredential
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // App Check removed for development
 
         // Firebase configuration - DEVELOPMENT PROJECT (SAFE)
         const firebaseConfig = {
@@ -157,8 +155,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
-        // App Check disabled for development environment
         
         // Initialize Auth Providers
         const googleProvider = new GoogleAuthProvider();
@@ -173,321 +169,19 @@
         const facebookSignInButton = document.getElementById('facebook-signin');
         const microsoftSignInButton = document.getElementById('microsoft-signin');
         const loginContainer = document.getElementById('login-container');
-
         const userStatusDiv = document.getElementById('user-status');
-        const userDisplayName = document.getElementById('user-display-name');
-        const userEmailDisplay = document.getElementById('user-email-display');
-        const providerIconContainer = document.getElementById('provider-icon-container');
         const signOutBtn = document.getElementById('signout-btn');
-        
-        // The URL to redirect to after successful login
-        const redirectUrl = "https://dev.wrestling.systems/dashboard/"; 
 
         // Helper Functions
         const handleAuthSuccess = (userCredential) => {
             console.log('User signed in successfully:', userCredential.user.uid);
-            window.location.href = redirectUrl;
-        };
-
-        // Show account linking dialog
-        const showAccountLinkingDialog = async (email, newProviderName) => {
-            return new Promise((resolve) => {
-                const linkingHtml = `
-                    <div class="text-left bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-4">
-                        <p class="font-semibold mb-3 text-blue-300">🔗 Account Already Exists</p>
-                        <p class="text-sm mb-3 text-blue-200">
-                            The email <strong>${email}</strong> is already registered with a different sign-in method.
-                        </p>
-                        <p class="text-sm mb-4 text-blue-200">
-                            Would you like to link your <strong>${newProviderName}</strong> account so you can sign in with either method?
-                        </p>
-                        <div class="flex gap-2 mt-4">
-                            <button id="link-accounts-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded transition-colors">
-                                🔗 Yes, Link Accounts
-                            </button>
-                            <button id="use-existing-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-4 py-2 rounded transition-colors">
-                                No, Use Existing Account
-                            </button>
-                        </div>
-                        <p class="text-xs text-blue-300 mt-2">
-                            Linking keeps all your data and lets you sign in with either method.
-                        </p>
-                    </div>
-                `;
-                
-                errorMessage.innerHTML = linkingHtml;
-                
-                // Add event listeners
-                const linkBtn = document.getElementById('link-accounts-btn');
-                const useExistingBtn = document.getElementById('use-existing-btn');
-                
-                const cleanup = () => {
-                    linkBtn?.removeEventListener('click', handleLink);
-                    useExistingBtn?.removeEventListener('click', handleUseExisting);
-                };
-                
-                const handleLink = () => {
-                    cleanup();
-                    resolve(true);
-                };
-                
-                const handleUseExisting = () => {
-                    cleanup();
-                    resolve(false);
-                };
-                
-                linkBtn?.addEventListener('click', handleLink);
-                useExistingBtn?.addEventListener('click', handleUseExisting);
-            });
-        };
-
-        // Handle account linking process
-        const handleAccountLinking = async (error, newProvider) => {
-            try {
-                console.log("Starting account linking process...");
-                const email = error.customData?.email;
-                
-                if (!email) {
-                    throw new Error("No email found in error");
-                }
-                
-                const newProviderName = newProvider.providerId.split('.')[0];
-                console.log("Linking conflict:", { email, newProvider: newProviderName });
-                
-                // Show linking dialog
-                const shouldLink = await showAccountLinkingDialog(email, newProviderName);
-                
-                if (!shouldLink) {
-                    // User chose to use existing account - show helpful message
-                    showError(`Please sign in with your existing account for <strong>${email}</strong> using Google, Facebook, Microsoft, or Email & Password.`);
-                    return;
-                }
-                
-                // User wants to link - get credential and existing methods
-                const credential = getCredentialFromError(error, newProvider);
-                if (!credential) {
-                    throw new Error("Could not extract credential from error");
-                }
-                
-                console.log("Getting existing sign-in methods...");
-                const methods = await fetchSignInMethodsForEmail(auth, email);
-                console.log("Available methods:", methods);
-                
-                if (!methods || methods.length === 0) {
-                    console.warn("⚠️ fetchSignInMethodsForEmail returned empty - using fallback approach");
-                    // Instead of failing, let's try a different approach
-                    showError(`
-                        <strong>Manual Account Linking</strong><br><br>
-                        We detected a conflict with <strong>${email}</strong> but couldn't automatically determine your existing sign-in method.<br><br>
-                        <strong>To link your accounts:</strong><br>
-                        1. Try signing in with <strong>Google, Facebook, Microsoft, or Email & Password</strong><br>
-                        2. Once signed in, try the ${newProviderName} OAuth again<br>
-                        3. Firebase will automatically link them<br><br>
-                        <em>This helps keep all your data together under one account.</em>
-                    `);
-                    return;
-                }
-                
-                // Show progress message
-                showError("Please sign in with your existing account to complete the linking...");
-                
-                // Sign in with the existing provider
-                const existingMethod = methods[0];
-                let existingProvider;
-                
-                if (existingMethod.includes('google.com')) {
-                    existingProvider = new GoogleAuthProvider();
-                } else if (existingMethod.includes('facebook.com')) {
-                    existingProvider = new FacebookAuthProvider();
-                } else if (existingMethod.includes('microsoft.com')) {
-                    existingProvider = new OAuthProvider('microsoft.com');
-                } else if (existingMethod === 'password') {
-                    // For email/password, we need to redirect them to sign in normally
-                    showError(`Please sign in with your email and password for <strong>${email}</strong>, then try the ${newProviderName} OAuth again to link them.`);
-                    return;
-                }
-                
-                if (!existingProvider) {
-                    throw new Error("Could not create provider for existing method");
-                }
-                
-                console.log("Signing in with existing provider...");
-                const result = await signInWithPopup(auth, existingProvider);
-                
-                console.log("Linking credential...");
-                await linkWithCredential(result.user, credential);
-                
-                // Success!
-                showError("✅ <strong>Accounts linked successfully!</strong><br>You can now sign in with either method. Redirecting...");
-                
-                setTimeout(() => {
-                    handleAuthSuccess(result);
-                }, 2000);
-                
-                console.log("Account linking completed successfully");
-                
-            } catch (linkError) {
-                console.error("Account linking failed:", linkError);
-                showError(`Account linking failed: ${linkError.message}<br><br>Please try signing in with your existing account instead.`);
-            }
-        };
-
-        // Get credential from error
-        const getCredentialFromError = (error, provider) => {
-            try {
-                if (provider.providerId === 'google.com') {
-                    return GoogleAuthProvider.credentialFromError(error);
-                } else if (provider.providerId === 'facebook.com') {
-                    return FacebookAuthProvider.credentialFromError(error);
-                } else if (provider.providerId === 'microsoft.com') {
-                    return OAuthProvider.credentialFromError(error);
-                }
-                return null;
-            } catch (credError) {
-                console.error("Error extracting credential:", credError);
-                return null;
-            }
+            window.location.href = "https://dev.wrestling.systems/dashboard/";
         };
 
         const showError = (message, errorObj = null) => {
             errorMessage.innerHTML = message;
             if (errorObj) console.error("Sign-in Error:", errorObj.code, errorObj.message);
         };
-
-        // Smart account linking handler
-        const handleAccountLinking = async (error, newProvider) => {
-            try {
-                console.log("=== ACCOUNT LINKING DEBUG ===");
-                console.log("Error:", error);
-                console.log("New provider:", newProvider);
-                
-                // Get the existing provider info
-                const email = error.customData?.email;
-                console.log("Email from error:", email);
-                
-                if (!email) {
-                    throw new Error("No email found in error object");
-                }
-                
-                const newProviderName = newProvider.providerId.split('.')[0];
-                console.log("New provider name:", newProviderName);
-                
-                // Get existing sign-in methods for this email
-                console.log("Fetching sign-in methods for:", email);
-                const methods = await fetchSignInMethodsForEmail(auth, email);
-                console.log("Existing methods:", methods);
-                console.log("Methods array length:", methods.length);
-                console.log("First method:", methods[0]);
-                
-                // Try to get provider info from the error object as well
-                console.log("Error customData:", error.customData);
-                console.log("Error credential:", error.credential);
-                
-                // If methods is empty, this might be a Firebase Auth issue
-                // Let's try a different approach to detect the provider
-                let existingProvider = 'unknown';
-                if (methods && methods.length > 0) {
-                    existingProvider = methods[0].split('.')[0];
-                    console.log("Provider from methods:", existingProvider);
-                } else {
-                    console.warn("⚠️  fetchSignInMethodsForEmail returned empty array!");
-                    console.log("This suggests the email might not be registered, or there's a Firebase Auth issue");
-                    
-                    // Fallback: try to detect from error patterns or ask user
-                    // For now, we'll show a different message
-                    existingProvider = 'unknown';
-                }
-                console.log("Final existing provider:", existingProvider);
-                
-                // Show linking dialog
-                console.log("Showing account linking dialog...");
-                const shouldLink = await showAccountLinkingDialog(email, existingProvider, newProviderName);
-                console.log("User choice - shouldLink:", shouldLink);
-                
-                if (shouldLink) {
-                    // User wants to link accounts
-                    console.log("User chose to link accounts");
-                    await linkAccounts(error, newProvider);
-                } else {
-                    // User wants to sign in with existing provider
-                    console.log("User chose existing provider");
-                    showError(`Please sign in with ${getProviderDisplayName(existingProvider)} instead.`);
-                }
-            } catch (linkError) {
-                console.error("Account linking error:", linkError);
-                console.error("Full error details:", {
-                    code: linkError.code,
-                    message: linkError.message,
-                    stack: linkError.stack
-                });
-                
-                // Instead of showing a generic error, let's fall back to the simple message
-                showError("This email is already registered. Please try signing in with your original method, or try a different email address.");
-            }
-        };
-
-
-
-        // Link accounts using Firebase
-        const linkAccounts = async (error, newProvider) => {
-            try {
-                // First, sign in with the existing provider to get the user
-                const email = error.customData.email;
-                const methods = await fetchSignInMethodsForEmail(auth, email);
-                
-                showError("Please sign in with your existing account first to link the new provider...");
-                
-                // Sign in with existing provider
-                let existingUser;
-                if (methods.includes('google.com')) {
-                    const result = await signInWithPopup(auth, googleProvider);
-                    existingUser = result.user;
-                } else if (methods.includes('facebook.com')) {
-                    const result = await signInWithPopup(auth, facebookProvider);
-                    existingUser = result.user;
-                } else if (methods.includes('microsoft.com')) {
-                    const result = await signInWithPopup(auth, microsoftProvider);
-                    existingUser = result.user;
-                }
-                
-                if (existingUser) {
-                    // Now link the new provider - get credential based on provider type
-                    let credential = null;
-                    if (newProvider.providerId === 'google.com') {
-                        credential = GoogleAuthProvider.credentialFromError(error);
-                    } else if (newProvider.providerId === 'facebook.com') {
-                        credential = FacebookAuthProvider.credentialFromError(error);
-                    } else if (newProvider.providerId === 'microsoft.com') {
-                        credential = OAuthProvider.credentialFromError(error);
-                    }
-                    
-                    if (credential) {
-                        await linkWithCredential(existingUser, credential);
-                        showError(`✅ Accounts linked! You can now sign in with either method.`);
-                        setTimeout(() => {
-                            window.location.href = "https://dev.wrestling.systems/dashboard/";
-                        }, 2000);
-                    }
-                }
-            } catch (linkError) {
-                console.error("Linking error:", linkError);
-                showError("Could not link accounts. Please try again.");
-            }
-        };
-        
-        function getProviderIcon(providerId) {
-            switch (providerId) {
-                case 'google.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>`;
-                case 'facebook.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>`;
-                case 'microsoft.com':
-                    return `<svg class="w-full h-full text-gold-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>`;
-                case 'password':
-                default:
-                    return `<svg class="w-full h-full text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>`;
-            }
-        }
 
         // Function to check if user was just logged out (prevent redirect loop)
         const isJustLoggedOut = () => {
@@ -542,7 +236,6 @@
                 }
             }
         });
-
 
         // Event Listeners
         signOutBtn.addEventListener('click', () => {
@@ -730,7 +423,7 @@
             }
         };
 
-        // Get credential from error - moved here from the old function
+        // Get credential from error
         const getCredentialFromError = (error, provider) => {
             try {
                 if (provider.providerId === 'google.com') {
@@ -813,4 +506,3 @@
     </script>
 </body>
 </html>
-
