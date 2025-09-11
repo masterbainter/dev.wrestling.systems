@@ -479,7 +479,7 @@
 
 
 
-        // Generic Social Sign-in Handler - Email-based account unification
+        // Enhanced Social Sign-in Handler with automatic account linking
         const handleSocialSignIn = async (provider, button) => {
             errorMessage.textContent = '';
             button.disabled = true;
@@ -491,30 +491,80 @@
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    // Email-based account unification approach
+                    // Implement automatic account linking for better UX
                     const email = error.customData?.email;
-                    console.log("OAuth conflict detected for email:", email);
+                    const credential = getCredentialFromError(error, provider);
+                    const providerName = provider.providerId.split('.')[0];
                     
-                    if (email) {
-                        // Show a simple message encouraging them to use their existing account
-                        showError(`
-                            <strong>Account Found!</strong><br><br>
-                            You already have an account with <strong>${email}</strong>.<br><br>
-                            Please sign in using your existing method:<br>
-                            <strong>Google, Facebook, Microsoft, or Email & Password</strong><br><br>
-                            <em>This keeps all your data in one place.</em>
-                        `);
+                    console.log(`${providerName} OAuth conflict for email:`, email);
+                    
+                    if (email && credential) {
+                        try {
+                            // Store the credential for linking after successful sign-in
+                            sessionStorage.setItem('pendingCredential', JSON.stringify({
+                                credential: credential,
+                                providerId: provider.providerId,
+                                email: email
+                            }));
+                            
+                            // Show linking dialog
+                            showError(`
+                                <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 text-left">
+                                    <h3 class="font-semibold mb-2 text-blue-300">🔗 Link Your Accounts</h3>
+                                    <p class="text-sm mb-3 text-blue-200">
+                                        You already have an account with <strong>${email}</strong>. 
+                                    </p>
+                                    <p class="text-sm mb-4 text-blue-200">
+                                        Sign in with your existing method to automatically link your <strong>${providerName}</strong> account:
+                                    </p>
+                                    <div class="grid grid-cols-2 gap-2 mb-3">
+                                        <button id="link-google" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded flex items-center justify-center transition-colors">
+                                            <svg class="w-3 h-3 mr-1" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
+                                            Google
+                                        </button>
+                                        <button id="link-facebook" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded flex items-center justify-center transition-colors">
+                                            <svg class="w-3 h-3 mr-1" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>
+                                            Facebook
+                                        </button>
+                                        <button id="link-microsoft" class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded flex items-center justify-center transition-colors">
+                                            <svg class="w-3 h-3 mr-1" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>
+                                            Microsoft
+                                        </button>
+                                        <button id="link-email" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded flex items-center justify-center transition-colors">
+                                            <svg class="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                            Email
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-blue-300">
+                                        After signing in, your ${providerName} account will be linked automatically.
+                                    </p>
+                                </div>
+                            `);
+                            
+                            // Add click handlers for linking buttons
+                            setTimeout(() => {
+                                document.getElementById('link-google')?.addEventListener('click', () => performAccountLink(googleProvider));
+                                document.getElementById('link-facebook')?.addEventListener('click', () => performAccountLink(facebookProvider));
+                                document.getElementById('link-microsoft')?.addEventListener('click', () => performAccountLink(microsoftProvider));
+                                document.getElementById('link-email')?.addEventListener('click', () => {
+                                    window.location.href = '/login/';
+                                });
+                            }, 100);
+                            
+                        } catch (linkError) {
+                            console.error("Account linking setup failed:", linkError);
+                            showError(`Account linking setup failed. Please sign in with your existing method for ${email}.`);
+                        }
                     } else {
-                        friendlyMessage = `This email is already registered. Please try signing in with Google, Facebook, Microsoft, or Email & Password.`;
+                        friendlyMessage = `This email is already registered. Please sign in with your existing method.`;
                         showError(friendlyMessage, error);
                     }
-                    return; // Don't show generic error message
+                    return;
                 } else if (error.code.includes('app-check')) {
                     friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
                 } else if (error.code === 'auth/unauthorized-domain') {
                     friendlyMessage = 'Authentication domain not authorized. Please contact support.';
                 } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                    // Don't show an error message if the user intentionally closes the popup.
                     friendlyMessage = '';
                 } else if (error.code === 'permission-denied') {
                     friendlyMessage = 'Failed to save user data due to permissions. Please contact support.';
@@ -527,6 +577,84 @@
                 button.disabled = false;
             }
         };
+
+        // Perform account linking after successful authentication
+        const performAccountLink = async (existingProvider) => {
+            try {
+                showError("Signing in to link accounts...");
+                
+                // Sign in with the existing provider
+                const result = await signInWithPopup(auth, existingProvider);
+                
+                // Get the stored credential
+                const pendingData = sessionStorage.getItem('pendingCredential');
+                if (!pendingData) {
+                    throw new Error("No pending credential found");
+                }
+                
+                const { credential } = JSON.parse(pendingData);
+                
+                // Reconstruct the credential object
+                let linkCredential;
+                if (credential.providerId === 'google.com') {
+                    linkCredential = GoogleAuthProvider.credential(credential.idToken, credential.accessToken);
+                } else if (credential.providerId === 'facebook.com') {
+                    linkCredential = FacebookAuthProvider.credential(credential.accessToken);
+                } else if (credential.providerId === 'microsoft.com') {
+                    linkCredential = new OAuthProvider('microsoft.com').credential({
+                        idToken: credential.idToken,
+                        accessToken: credential.accessToken
+                    });
+                }
+                
+                if (!linkCredential) {
+                    throw new Error("Could not reconstruct credential for linking");
+                }
+                
+                // Link the credential
+                await linkWithCredential(result.user, linkCredential);
+                
+                // Clean up
+                sessionStorage.removeItem('pendingCredential');
+                
+                showError("✅ Accounts linked successfully! Redirecting...");
+                setTimeout(() => {
+                    handleAuthSuccess(result);
+                }, 1500);
+                
+            } catch (linkError) {
+                console.error("Account linking failed:", linkError);
+                sessionStorage.removeItem('pendingCredential');
+                
+                if (linkError.code === 'auth/provider-already-linked') {
+                    showError("✅ Accounts already linked! Redirecting...");
+                    setTimeout(() => {
+                        window.location.href = '/dashboard/';
+                    }, 1500);
+                } else {
+                    showError("Account linking failed. You can still use your existing account to sign in.");
+                }
+            }
+        };
+
+        // Check for pending credential on page load (for email sign-in flow)
+        window.addEventListener('load', () => {
+            const pendingData = sessionStorage.getItem('pendingCredential');
+            if (pendingData) {
+                const { email, providerId } = JSON.parse(pendingData);
+                const providerName = providerId.split('.')[0];
+                
+                // User came from email sign-in, show that they can complete linking
+                showError(`
+                    <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-4 text-left">
+                        <h3 class="font-semibold mb-2 text-green-300">✅ Ready to Link</h3>
+                        <p class="text-sm text-green-200">
+                            Your ${providerName} account is ready to be linked with ${email}.
+                        </p>
+                    </div>
+                `);
+            }
+        });
 
         // Attach event listeners
         googleSignInButton.addEventListener('click', () => handleSocialSignIn(googleProvider, googleSignInButton));
