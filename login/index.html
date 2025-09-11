@@ -201,27 +201,53 @@
         // Smart account linking handler
         const handleAccountLinking = async (error, newProvider) => {
             try {
+                console.log("=== ACCOUNT LINKING DEBUG ===");
+                console.log("Error:", error);
+                console.log("New provider:", newProvider);
+                
                 // Get the existing provider info
-                const email = error.customData.email;
+                const email = error.customData?.email;
+                console.log("Email from error:", email);
+                
+                if (!email) {
+                    throw new Error("No email found in error object");
+                }
+                
                 const newProviderName = newProvider.providerId.split('.')[0];
+                console.log("New provider name:", newProviderName);
                 
                 // Get existing sign-in methods for this email
+                console.log("Fetching sign-in methods for:", email);
                 const methods = await fetchSignInMethodsForEmail(auth, email);
+                console.log("Existing methods:", methods);
+                
                 const existingProvider = methods[0]?.split('.')[0] || 'email';
+                console.log("Existing provider:", existingProvider);
                 
                 // Show linking dialog
+                console.log("Showing account linking dialog...");
                 const shouldLink = await showAccountLinkingDialog(email, existingProvider, newProviderName);
+                console.log("User choice - shouldLink:", shouldLink);
                 
                 if (shouldLink) {
                     // User wants to link accounts
+                    console.log("User chose to link accounts");
                     await linkAccounts(error, newProvider);
                 } else {
                     // User wants to sign in with existing provider
+                    console.log("User chose existing provider");
                     showError(`Please sign in with ${existingProvider.charAt(0).toUpperCase() + existingProvider.slice(1)} instead.`);
                 }
             } catch (linkError) {
                 console.error("Account linking error:", linkError);
-                showError("Unable to link accounts. Please try signing in with your original method.");
+                console.error("Full error details:", {
+                    code: linkError.code,
+                    message: linkError.message,
+                    stack: linkError.stack
+                });
+                
+                // Instead of showing a generic error, let's fall back to the simple message
+                showError("This email is already registered. Please try signing in with your original method, or try a different email address.");
             }
         };
 
