@@ -249,11 +249,25 @@
             errorMessage.textContent = '';
             
             try {
-                console.log(`Attempting ${provider.providerId} sign-in...`);
+                console.log(`=== ATTEMPTING ${provider.providerId.toUpperCase()} SIGN-IN ===`);
                 const result = await signInWithPopup(auth, provider);
                 
-                console.log(`${provider.providerId} sign-in successful:`, result.user);
-                console.log("Linked providers:", result.user.providerData.map(p => p.providerId));
+                console.log(`✅ ${provider.providerId} sign-in successful!`);
+                console.log('User UID:', result.user.uid);
+                console.log('User email:', result.user.email);
+                console.log("Current linked providers:", result.user.providerData.map(p => p.providerId));
+                
+                // CRITICAL CHECK: If user has multiple providers, previous linking worked
+                if (result.user.providerData.length > 1) {
+                    console.log('🎉 SUCCESS: Multiple providers found - account linking IS working!');
+                    console.log('Provider details:', result.user.providerData.map(p => ({
+                        provider: p.providerId,
+                        uid: p.uid,
+                        email: p.email
+                    })));
+                } else {
+                    console.log('ℹ️ Single provider found - either first sign-in or linking failed previously');
+                }
                 
                 handleAuthSuccess(result);
             } catch (error) {
@@ -506,20 +520,49 @@
                 // Link the pending credential to the existing account
                 showError('Linking accounts...');
                 console.log('Attempting linkWithCredential...');
+                console.log('User before linking:', {
+                    uid: existingResult.user.uid,
+                    email: existingResult.user.email,
+                    providers: existingResult.user.providerData.map(p => p.providerId)
+                });
+                console.log('Credential to link:', pendingCredential);
                 
                 const linkedResult = await linkWithCredential(existingResult.user, pendingCredential);
                 
-                console.log('✅ Accounts linked successfully!');
+                console.log('✅ linkWithCredential() completed!');
                 console.log('Linked user UID:', linkedResult.user.uid);
                 console.log('Linked user email:', linkedResult.user.email);
                 console.log('Final linked providers:', linkedResult.user.providerData.map(p => p.providerId));
                 
-                showError('✅ Accounts linked! Redirecting...');
+                // CRITICAL TEST: Refresh the user to see if linking persisted
+                await linkedResult.user.reload();
+                console.log('After user.reload() - providers:', linkedResult.user.providerData.map(p => p.providerId));
+                
+                // CRITICAL TEST: Check if we can get a fresh token with multiple providers
+                try {
+                    const tokenResult = await linkedResult.user.getIdTokenResult(true);
+                    console.log('Token result:', tokenResult);
+                    console.log('Token claims firebase.sign_in_provider:', tokenResult.claims.firebase?.sign_in_provider);
+                } catch (tokenError) {
+                    console.error('Error getting token:', tokenError);
+                }
+                
+                // CRITICAL TEST: Check current auth state
+                console.log('Auth.currentUser after linking:', auth.currentUser);
+                console.log('Auth.currentUser providers:', auth.currentUser?.providerData.map(p => p.providerId));
+                
+                showError('✅ Accounts linked! Testing persistence...');
+                
+                // Test if linking actually worked by signing out and back in
+                console.log('🧪 TESTING ACCOUNT LINKING PERSISTENCE');
+                console.log('1. Current providers:', linkedResult.user.providerData.map(p => p.providerId));
+                console.log('2. If this worked, next Microsoft sign-in should succeed without modal');
+                console.log('3. If you still get the modal, linkWithCredential is NOT working');
                 
                 // Store updated user data and redirect
                 setTimeout(() => {
                     handleAuthSuccess(linkedResult);
-                }, 1500);
+                }, 2000);
                 
             } catch (linkError) {
                 console.error('=== ACCOUNT LINKING FAILED ===');
