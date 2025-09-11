@@ -699,10 +699,27 @@
         // Perform account linking after successful authentication
         const performAccountLink = async (existingProvider) => {
             try {
+                console.log("=== performAccountLink CALLED ===");
+                console.log("Existing provider:", existingProvider.providerId);
+                console.log("Current auth state:", auth.currentUser ? "signed in" : "signed out");
+                if (auth.currentUser) {
+                    console.log("Current user UID:", auth.currentUser.uid);
+                    console.log("Current user providers:", auth.currentUser.providerData.map(p => p.providerId));
+                }
+                
+                // Check if we have pending credential
+                const pendingData = sessionStorage.getItem('pendingCredential');
+                console.log("Pending credential data:", pendingData);
+                
+                if (!pendingData) {
+                    throw new Error("No pending credential found - this should not happen!");
+                }
+                
                 showError("Signing in to link accounts...");
                 
                 // Sign in with the existing provider
                 const result = await signInWithPopup(auth, existingProvider);
+                console.log("Signed in with existing provider:", result.user.uid);
                 
                 // Get the stored credential
                 const pendingData = sessionStorage.getItem('pendingCredential');
@@ -716,6 +733,20 @@
                 // Verify email matches to prevent cross-email linking
                 if (credentialData.email !== result.user.email) {
                     throw new Error(`Email mismatch: trying to link ${credentialData.email} to ${result.user.email}`);
+                }
+                
+                // Check if the provider is already linked
+                const currentProviders = result.user.providerData.map(p => p.providerId);
+                console.log("User's current providers BEFORE linking:", currentProviders);
+                
+                if (currentProviders.includes(credentialData.providerId)) {
+                    console.log("🎉 Provider already linked! This account should work for both OAuth methods.");
+                    sessionStorage.removeItem('pendingCredential');
+                    showError(`✅ Accounts are already linked! You can sign in with ${currentProviders.join(', ')}. Redirecting...`);
+                    setTimeout(() => {
+                        window.location.href = '/dashboard/';
+                    }, 2000);
+                    return;
                 }
                 
                 // Now create the provider for the pending credential to link

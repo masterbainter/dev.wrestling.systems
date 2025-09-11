@@ -366,6 +366,20 @@
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
+                    // First check if user is already signed in and has this provider linked
+                    if (auth.currentUser) {
+                        const currentProviders = auth.currentUser.providerData.map(p => p.providerId);
+                        console.log("User already signed in with providers:", currentProviders);
+                        
+                        if (currentProviders.includes(provider.providerId)) {
+                            console.log("🎉 Provider already linked! User should not see this error.");
+                            // This shouldn't happen, but if it does, just refresh auth state
+                            await auth.currentUser.reload();
+                            handleAuthSuccess({ user: auth.currentUser });
+                            return;
+                        }
+                    }
+                    
                     // Implement automatic account linking for better UX
                     const email = error.customData?.email;
                     const credential = getCredentialFromError(error, provider);
@@ -598,16 +612,27 @@
         // Perform account linking after successful authentication
         const performAccountLink = async (existingProvider) => {
             try {
+                console.log("=== performAccountLink CALLED ===");
+                console.log("Existing provider:", existingProvider.providerId);
+                console.log("Current auth state:", auth.currentUser ? "signed in" : "signed out");
+                if (auth.currentUser) {
+                    console.log("Current user UID:", auth.currentUser.uid);
+                    console.log("Current user providers:", auth.currentUser.providerData.map(p => p.providerId));
+                }
+                
+                // Check if we have pending credential
+                const pendingData = sessionStorage.getItem('pendingCredential');
+                console.log("Pending credential data:", pendingData);
+                
+                if (!pendingData) {
+                    throw new Error("No pending credential found - this should not happen!");
+                }
+                
                 showError("Signing in to link accounts...");
                 
                 // Sign in with the existing provider first
                 const result = await signInWithPopup(auth, existingProvider);
-                
-                // Get the stored credential info
-                const pendingData = sessionStorage.getItem('pendingCredential');
-                if (!pendingData) {
-                    throw new Error("No pending credential found");
-                }
+                console.log("Signed in with existing provider:", result.user.uid);
                 
                 const credentialData = JSON.parse(pendingData);
                 console.log("Retrieved credential data:", credentialData);
@@ -615,6 +640,20 @@
                 // Verify email matches to prevent cross-email linking
                 if (credentialData.email !== result.user.email) {
                     throw new Error(`Email mismatch: trying to link ${credentialData.email} to ${result.user.email}`);
+                }
+                
+                // Check if the provider is already linked
+                const currentProviders = result.user.providerData.map(p => p.providerId);
+                console.log("User's current providers BEFORE linking:", currentProviders);
+                
+                if (currentProviders.includes(credentialData.providerId)) {
+                    console.log("🎉 Provider already linked! This account should work for both OAuth methods.");
+                    sessionStorage.removeItem('pendingCredential');
+                    showError(`✅ Accounts are already linked! You can sign in with ${currentProviders.join(', ')}. Redirecting...`);
+                    setTimeout(() => {
+                        window.location.href = '/dashboard/';
+                    }, 2000);
+                    return;
                 }
                 
                 // Now create the provider for the pending credential to link
@@ -642,7 +681,30 @@
                 
                 // Use linkWithPopup instead of linkWithCredential for better reliability
                 showError("Linking accounts with new provider...");
-                const linkedResult = await linkWithPopup(result.user, pendingProvider);
+                console.log("About to call linkWithPopup with:", {
+                    user: result.user.uid,
+                    provider: credentialData.providerId,
+                    currentProviders: result.user.providerData.map(p => p.providerId)
+                });
+                
+                let linkedResult;
+                try {
+                    linkedResult = await linkWithPopup(result.user, pendingProvider);
+                    console.log("linkWithPopup SUCCESS - Raw result:", linkedResult);
+                } catch (popupError) {
+                    console.error("linkWithPopup FAILED:", popupError);
+                    if (popupError.code === 'auth/popup-closed-by-user') {
+                        showError("Account linking cancelled. Please try again.");
+                        return;
+                    } else if (popupError.code === 'auth/popup-blocked') {
+                        showError("Popup was blocked by browser. Please allow popups for this site and try again.");
+                        return;
+                    } else if (popupError.code === 'auth/cancelled-popup-request') {
+                        showError("Account linking was cancelled. Please try again.");
+                        return;
+                    }
+                    throw popupError; // Re-throw other errors
+                }
                 
                 console.log("=== LINKING SUCCESSFUL ===");
                 console.log("Linked result:", linkedResult);
