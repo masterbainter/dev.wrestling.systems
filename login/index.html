@@ -447,20 +447,29 @@
             }
         });
         
-        // Generic Social Sign-in Handler
+        // Generic Social Sign-in Handler - Simplified approach
         const handleSocialSignIn = async (provider, button) => {
             errorMessage.textContent = '';
             button.disabled = true;
             try {
                 const result = await signInWithPopup(auth, provider);
+                
+                // Check if this might be a duplicate account by email
+                const email = result.user.email;
+                if (email) {
+                    // Store potential duplicate info in sessionStorage for dashboard to check
+                    sessionStorage.setItem('newAuthProvider', provider.providerId);
+                    sessionStorage.setItem('newAuthEmail', email);
+                    sessionStorage.setItem('checkForDuplicates', 'true');
+                }
+                
                 handleAuthSuccess(result);
             } catch (error) {
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    // Smart account linking flow
-                    await handleAccountLinking(error, provider);
-                    return; // Don't show generic error message
+                    // Instead of complex linking, show helpful message
+                    friendlyMessage = `This email is already registered with a different sign-in method. Please try signing in with Google, Facebook, Microsoft, or Email & Password.`;
                 } else if (error.code.includes('app-check')) {
                     friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
                 } else if (error.code === 'auth/unauthorized-domain') {

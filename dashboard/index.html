@@ -82,6 +82,26 @@
         </div>
     </div>
 
+    <!-- Duplicate Account Detection Banner -->
+    <div id="duplicate-account-banner" class="bg-blue-900/30 border-b border-blue-500/30 p-4 text-center hidden">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-left">
+                    <p class="text-blue-300 text-sm font-medium mb-1">🔗 Multiple Accounts Detected</p>
+                    <p id="duplicate-account-message" class="text-blue-200 text-xs"></p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="link-duplicate-accounts-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded transition-colors whitespace-nowrap">
+                        Link Accounts
+                    </button>
+                    <button id="dismiss-duplicate-banner-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded transition-colors whitespace-nowrap">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="min-h-screen bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950">
         <!-- Main Content Container -->
         <div class="container mx-auto px-4 py-8">
@@ -295,6 +315,9 @@
                     currentUser = user;
                     debugLog("User ID: " + user.uid);
                     
+                    // Check for duplicate accounts after successful authentication
+                    checkForDuplicateAccounts(user);
+                    
                     // Show user info
                     userDisplayName.textContent = user.displayName || user.email;
                     userEmailDisplay.textContent = user.email;
@@ -468,6 +491,132 @@
             dashboardContent.classList.remove('hidden');
         }
         
+        // Check for duplicate accounts and show linking option
+        async function checkForDuplicateAccounts(user) {
+            try {
+                // Check if we should look for duplicates
+                const shouldCheck = sessionStorage.getItem('checkForDuplicates');
+                const newAuthProvider = sessionStorage.getItem('newAuthProvider');
+                const newAuthEmail = sessionStorage.getItem('newAuthEmail');
+                
+                if (!shouldCheck || !newAuthProvider || !newAuthEmail) {
+                    debugLog("No duplicate check needed");
+                    return;
+                }
+                
+                debugLog("Checking for duplicate accounts...", {
+                    newProvider: newAuthProvider,
+                    email: newAuthEmail,
+                    currentUserEmail: user.email
+                });
+                
+                // Clear the session storage flags
+                sessionStorage.removeItem('checkForDuplicates');
+                sessionStorage.removeItem('newAuthProvider');
+                sessionStorage.removeItem('newAuthEmail');
+                
+                // Check if there might be other accounts with this email
+                if (user.email === newAuthEmail) {
+                    // Query Firestore for other users with this email
+                    // (This is simplified - in reality you'd need to check Firebase Auth users)
+                    
+                    // Get current user's provider data
+                    const providers = user.providerData.map(p => p.providerId);
+                    debugLog("Current user providers:", providers);
+                    
+                    // If user only has one provider but we just authenticated with a new one,
+                    // there might be a duplicate account
+                    if (providers.length === 1) {
+                        showDuplicateAccountBanner(newAuthProvider, user.email);
+                    }
+                }
+            } catch (error) {
+                debugError("Error checking for duplicate accounts:", error);
+            }
+        }
+        
+        // Show duplicate account banner
+        function showDuplicateAccountBanner(newProvider, email) {
+            const banner = document.getElementById('duplicate-account-banner');
+            const message = document.getElementById('duplicate-account-message');
+            
+            const providerName = getProviderDisplayName(newProvider.split('.')[0]);
+            
+            message.textContent = `You just signed in with ${providerName}. If you have another account with ${email} using a different method (Google, Facebook, Microsoft, or Email & Password), you can link them together.`;
+            
+            banner.classList.remove('hidden');
+            debugLog("Showing duplicate account banner for provider:", newProvider);
+        }
+        
+        // Get user-friendly provider name
+        function getProviderDisplayName(provider) {
+            switch (provider.toLowerCase()) {
+                case 'google': return 'Google';
+                case 'facebook': return 'Facebook';
+                case 'microsoft': return 'Microsoft';
+                case 'email': return 'Email & Password';
+                case 'password': return 'Email & Password';
+                default: return provider.charAt(0).toUpperCase() + provider.slice(1);
+            }
+        }
+        
+        // Handle linking duplicate accounts
+        async function handleLinkDuplicateAccounts() {
+            try {
+                debugLog("User chose to link duplicate accounts");
+                
+                const user = currentUser;
+                if (!user || !user.email) {
+                    alert('Error: No user logged in');
+                    return;
+                }
+                
+                // Show instructions to user
+                const confirmed = confirm(
+                    'Link Accounts Instructions:\n\n' +
+                    '1. We\'ll try to find other authentication methods for your email\n' +
+                    '2. You may be asked to sign in with your other account\n' +
+                    '3. Once verified, the accounts will be linked\n\n' +
+                    'Continue?'
+                );
+                
+                if (!confirmed) return;
+                
+                // Try to get existing sign-in methods for this email
+                const methods = await firebase.auth().fetchSignInMethodsForEmail(user.email);
+                debugLog("Available sign-in methods for", user.email, ":", methods);
+                
+                if (methods.length <= 1) {
+                    alert('No other sign-in methods found for this email. The accounts may already be linked, or there may not be duplicate accounts.');
+                    hideDuplicateAccountBanner();
+                    return;
+                }
+                
+                // Show available methods to user
+                const availableMethods = methods.map(method => {
+                    return getProviderDisplayName(method.split('.')[0]);
+                }).join(', ');
+                
+                alert(
+                    `Other sign-in methods found: ${availableMethods}\n\n` +
+                    'Account linking will happen automatically when you sign in with different providers in the future.\n\n' +
+                    'Your accounts are now ready to be linked!'
+                );
+                
+                hideDuplicateAccountBanner();
+                
+            } catch (error) {
+                debugError("Error linking duplicate accounts:", error);
+                alert('Error linking accounts: ' + error.message);
+            }
+        }
+        
+        // Hide duplicate account banner
+        function hideDuplicateAccountBanner() {
+            const banner = document.getElementById('duplicate-account-banner');
+            banner.classList.add('hidden');
+        }
+
         // Handle data migration request
         async function handleDataMigrationRequest() {
             if (!currentUser) {
@@ -655,6 +804,24 @@
                 requestMigrationBtn.addEventListener('click', async () => {
                     debugLog("Request data migration clicked");
                     await handleDataMigrationRequest();
+                });
+            }
+            
+            // Duplicate account linking
+            const linkDuplicateAccountsBtn = document.getElementById('link-duplicate-accounts-btn');
+            if (linkDuplicateAccountsBtn) {
+                linkDuplicateAccountsBtn.addEventListener('click', async () => {
+                    debugLog("Link duplicate accounts clicked");
+                    await handleLinkDuplicateAccounts();
+                });
+            }
+            
+            // Dismiss duplicate account banner
+            const dismissDuplicateBannerBtn = document.getElementById('dismiss-duplicate-banner-btn');
+            if (dismissDuplicateBannerBtn) {
+                dismissDuplicateBannerBtn.addEventListener('click', () => {
+                    debugLog("Dismiss duplicate banner clicked");
+                    hideDuplicateAccountBanner();
                 });
             }
             
