@@ -143,7 +143,7 @@
             setPersistence,
             browserLocalPersistence
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase configuration - DEVELOPMENT PROJECT (SAFE)
         const firebaseConfig = {
@@ -184,6 +184,79 @@
         
         // Initialize persistence
         initializeAuth();
+        
+        // Database-level persistence for account linking
+        const storeAccountLinkingInDatabase = async (user, linkedProvider) => {
+            try {
+                console.log("📝 Storing account linking data in Firestore...");
+                
+                const userDocRef = doc(db, 'users', user.uid);
+                
+                // Get current user data
+                const userDoc = await getDoc(userDocRef);
+                const existingData = userDoc.exists() ? userDoc.data() : {};
+                
+                // Prepare linked providers data
+                const linkedProviders = user.providerData.map(provider => ({
+                    providerId: provider.providerId,
+                    uid: provider.uid,
+                    email: provider.email,
+                    displayName: provider.displayName,
+                    photoURL: provider.photoURL,
+                    linkedAt: serverTimestamp()
+                }));
+                
+                // Store comprehensive user data with linked providers
+                const userData = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                    emailVerified: user.emailVerified,
+                    linkedProviders: linkedProviders,
+                    lastUpdated: serverTimestamp(),
+                    accountLinkingHistory: [
+                        ...(existingData.accountLinkingHistory || []),
+                        {
+                            action: 'provider_linked',
+                            providerId: linkedProvider,
+                            timestamp: serverTimestamp(),
+                            totalProviders: linkedProviders.length
+                        }
+                    ]
+                };
+                
+                await setDoc(userDocRef, userData, { merge: true });
+                
+                console.log("✅ Account linking data stored in Firestore:", {
+                    uid: user.uid,
+                    providers: linkedProviders.map(p => p.providerId),
+                    totalLinked: linkedProviders.length
+                });
+                
+                return true;
+            } catch (firestoreError) {
+                console.error("❌ Failed to store linking data in Firestore:", firestoreError);
+                return false;
+            }
+        };
+        
+        // Check if user has linked providers in database
+        const checkLinkedProvidersInDatabase = async (userUid) => {
+            try {
+                const userDocRef = doc(db, 'users', userUid);
+                const userDoc = await getDoc(userDocRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    return userData.linkedProviders || [];
+                }
+                return [];
+            } catch (error) {
+                console.error("Error checking linked providers in database:", error);
+                return [];
+            }
+        };
         
         // Initialize Auth Providers
         const googleProvider = new GoogleAuthProvider();
@@ -394,6 +467,29 @@
                     }
                 }
                 
+                // Check and sync database-stored linked providers
+                console.log("🔍 Checking for linked providers in database...");
+                const dbProviders = await checkLinkedProvidersInDatabase(result.user.uid);
+                const dbProviderIds = dbProviders.map(p => p.providerId);
+                const authProviderIds = result.user.providerData.map(p => p.providerId);
+                
+                console.log("Firebase Auth providers:", authProviderIds);
+                console.log("Database providers:", dbProviderIds);
+                
+                // Detect discrepancy between Firebase Auth and database
+                const onlyInDb = dbProviderIds.filter(pid => !authProviderIds.includes(pid));
+                const onlyInAuth = authProviderIds.filter(pid => !dbProviderIds.includes(pid));
+                
+                if (onlyInDb.length > 0) {
+                    console.warn("🚨 PROVIDERS ONLY IN DATABASE:", onlyInDb);
+                    console.warn("This indicates Firebase Auth account linking is not working!");
+                }
+                
+                if (onlyInAuth.length > 0) {
+                    console.log("📝 Updating database with providers only in Firebase Auth:", onlyInAuth);
+                    await storeAccountLinkingInDatabase(result.user, onlyInAuth[0]);
+                }
+                
                 console.log("=== SUCCESSFUL OAUTH SIGN-IN ===");
                 console.log("Provider used:", provider.providerId);
                 console.log("User UID:", result.user.uid);
@@ -424,9 +520,20 @@
                         const currentProviders = auth.currentUser.providerData.map(p => p.providerId);
                         console.log("User already signed in with providers:", currentProviders);
                         
-                        if (currentProviders.includes(provider.providerId)) {
-                            console.log("🎉 Provider already linked! User should not see this error.");
-                            // This shouldn't happen, but if it does, just refresh auth state
+                        // Also check database for linked providers
+                        const dbProviders = await checkLinkedProvidersInDatabase(auth.currentUser.uid);
+                        const dbProviderIds = dbProviders.map(p => p.providerId);
+                        console.log("Database shows linked providers:", dbProviderIds);
+                        
+                        if (currentProviders.includes(provider.providerId) || dbProviderIds.includes(provider.providerId)) {
+                            console.log("🎉 Provider already linked! (Firebase Auth or Database)");
+                            
+                            // If it's in database but not Firebase Auth, this indicates Firebase Auth linking is broken
+                            if (dbProviderIds.includes(provider.providerId) && !currentProviders.includes(provider.providerId)) {
+                                console.error("🚨 CRITICAL: Provider linked in database but NOT in Firebase Auth!");
+                                console.error("This confirms Firebase Auth account linking is not persisting!");
+                            }
+                            
                             await auth.currentUser.reload();
                             handleAuthSuccess({ user: auth.currentUser });
                             return;
@@ -791,6 +898,16 @@
                 // Check current auth state
                 console.log("Current auth user:", auth.currentUser);
                 console.log("Current auth user providers:", auth.currentUser?.providerData.map(p => p.providerId));
+                
+                // CRITICAL: Store linking data in Firestore as backup
+                console.log("💾 STORING ACCOUNT LINKING IN DATABASE...");
+                const firestoreStored = await storeAccountLinkingInDatabase(linkedResult.user, credentialData.providerId);
+                
+                if (firestoreStored) {
+                    console.log("✅ Account linking backed up to Firestore - data will persist even if Firebase Auth fails");
+                } else {
+                    console.error("❌ Failed to backup linking data to Firestore - relying on Firebase Auth only");
+                }
                 
                 // Firebase Console Investigation Helper
                 console.log("=== FIREBASE CONSOLE INVESTIGATION ===");
