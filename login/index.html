@@ -311,8 +311,16 @@
                 }
                 
                 if (existingUser) {
-                    // Now link the new provider
-                    const credential = OAuthProvider.credentialFromError(error);
+                    // Now link the new provider - get credential based on provider type
+                    let credential = null;
+                    if (newProvider.providerId === 'google.com') {
+                        credential = GoogleAuthProvider.credentialFromError(error);
+                    } else if (newProvider.providerId === 'facebook.com') {
+                        credential = FacebookAuthProvider.credentialFromError(error);
+                    } else if (newProvider.providerId === 'microsoft.com') {
+                        credential = OAuthProvider.credentialFromError(error);
+                    }
+                    
                     if (credential) {
                         await linkWithCredential(existingUser, credential);
                         showError(`✅ Accounts linked! You can now sign in with either method.`);
