@@ -146,20 +146,16 @@
             signInWithPopup
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app-check.js";
+        // App Check removed for development
 
-        // Your web app's Firebase configuration
-        // Using 'auth.wrestling.systems' for Firebase Authentication
-        // Ensure 'auth.wrestling.systems' is verified in Firebase Console > Hosting and Authentication > Authorized domains
-        // Add A records in Cloudflare: auth.wrestling.systems -> 151.101.1.195 and 151.101.65.195
+        // Firebase configuration - DEVELOPMENT PROJECT (SAFE)
         const firebaseConfig = {
-            apiKey: "AIzaSyASn9xe5RRKFGXNi-Vha-NunDYj1mv7D3g",
-            authDomain: "auth.wrestling.systems",
-            projectId: "wrestlingsystems",
-            storageBucket: "wrestlingsystems.appspot.com",
-            messagingSenderId: "255692661115",
-            appId: "1:255692661115:web:7ad4f8d39b78fb1220ddde",
-            measurementId: "G-E52GDENT1E"
+            apiKey: "AIzaSyDUKOn5OKq9XYwJF-loJ-1E8_P4jaCvnUM",
+            authDomain: "wrestling-systems-dev.firebaseapp.com",
+            projectId: "wrestling-systems-dev",
+            storageBucket: "wrestling-systems-dev.firebasestorage.app",
+            messagingSenderId: "115633693255",
+            appId: "1:115633693255:web:3ddd3679f2038438c14762"
         };
         
         // Initialize Firebase
@@ -167,12 +163,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Initialize App Check with reCAPTCHA v3
-        // Replace with your reCAPTCHA v3 site key from Google reCAPTCHA admin console, registered for wrestling.systems
-        const appCheck = initializeAppCheck(app, {
-            provider: new ReCaptchaV3Provider('6Ler2pgrAAAAAAQwDvNoe4voerXxtlVTwvdi0sg2'),
-            isTokenAutoRefreshEnabled: true
-        });
+        // App Check disabled for development environment
         
         // Initialize Auth Providers
         const googleProvider = new GoogleAuthProvider();
