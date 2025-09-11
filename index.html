@@ -167,9 +167,7 @@
             OAuthProvider,
             signInWithPopup,
             onAuthStateChanged,
-            sendEmailVerification,
-            fetchSignInMethodsForEmail,
-            linkWithCredential
+            sendEmailVerification
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         // App Check removed for development
@@ -317,22 +315,6 @@
             window.location.href = "https://dev.wrestling.systems/dashboard/";
         };
 
-        // Get credential from error based on provider
-        const getCredentialFromError = (error, provider) => {
-            try {
-                if (provider.providerId === 'google.com') {
-                    return GoogleAuthProvider.credentialFromError(error);
-                } else if (provider.providerId === 'facebook.com') {
-                    return FacebookAuthProvider.credentialFromError(error);
-                } else if (provider.providerId === 'microsoft.com') {
-                    return OAuthProvider.credentialFromError(error);
-                }
-                return null;
-            } catch (credError) {
-                console.error("Error extracting credential:", credError);
-                return null;
-            }
-        };
 
         // Get user-friendly provider name
         const getProviderDisplayName = (provider) => {
@@ -536,54 +518,13 @@
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    // Try automatic account linking
-                    try {
-                        console.log("Attempting automatic account linking...");
-                        const email = error.customData?.email;
-                        const credential = getCredentialFromError(error, provider);
-                        
-                        if (email && credential) {
-                            // Get existing sign-in methods
-                            const methods = await fetchSignInMethodsForEmail(auth, email);
-                            console.log("Existing methods for", email, ":", methods);
-                            
-                            if (methods && methods.length > 0) {
-                                // Try to sign in with the first available method to get the user
-                                const existingMethod = methods[0];
-                                console.log("Trying to link with existing method:", existingMethod);
-                                
-                                // Show user what's happening
-                                showError(`Linking your ${provider.providerId.split('.')[0]} account with your existing account...`);
-                                
-                                // Create a provider for the existing method and sign in
-                                let existingProvider;
-                                if (existingMethod.includes('google')) {
-                                    existingProvider = new GoogleAuthProvider();
-                                } else if (existingMethod.includes('facebook')) {
-                                    existingProvider = new FacebookAuthProvider();
-                                } else if (existingMethod.includes('microsoft')) {
-                                    existingProvider = new OAuthProvider('microsoft.com');
-                                }
-                                
-                                if (existingProvider) {
-                                    // Sign in with existing provider, then link
-                                    const result = await signInWithPopup(auth, existingProvider);
-                                    await result.user.linkWithCredential(credential);
-                                    
-                                    showError(`✅ Accounts linked successfully! You can now sign in with either method.`);
-                                    setTimeout(() => {
-                                        handleAuthSuccess(result);
-                                    }, 2000);
-                                    return; // Don't show the generic error
-                                }
-                            }
-                        }
-                    } catch (linkError) {
-                        console.error("Auto-linking failed:", linkError);
+                    // Standard approach: Clear error message with guidance
+                    const email = error.customData?.email;
+                    if (email) {
+                        friendlyMessage = `The email <strong>${email}</strong> is already registered with a different sign-in method.<br><br>Please try signing in with Google, Facebook, Microsoft, or Email & Password instead.`;
+                    } else {
+                        friendlyMessage = `This email is already registered with a different sign-in method. Please try signing in with Google, Facebook, Microsoft, or Email & Password.`;
                     }
-                    
-                    // If auto-linking failed, show helpful message
-                    friendlyMessage = `This email is already registered with a different sign-in method. Please try signing in with Google, Facebook, Microsoft, or Email & Password.`;
                 } else if (error.code.includes('app-check')) {
                     friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
                 } else if (error.code === 'auth/unauthorized-domain') {
