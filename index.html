@@ -509,35 +509,58 @@
                             
                             // Show linking dialog
                             showError(`
-                                <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 text-left">
-                                    <h3 class="font-semibold mb-2 text-blue-300">🔗 Link Your Accounts</h3>
-                                    <p class="text-sm mb-3 text-blue-200">
-                                        You already have an account with <strong>${email}</strong>. 
-                                    </p>
-                                    <p class="text-sm mb-4 text-blue-200">
-                                        Sign in with your existing method to automatically link your <strong>${providerName}</strong> account:
-                                    </p>
-                                    <div class="grid grid-cols-2 gap-2 mb-3">
-                                        <button id="link-google" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded flex items-center justify-center transition-colors">
-                                            <svg class="w-3 h-3 mr-1" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
+                                <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/20 border border-blue-400/40 rounded-xl p-6 text-left shadow-lg backdrop-blur-sm">
+                                    <div class="flex items-center mb-4">
+                                        <div class="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center mr-3">
+                                            <svg class="w-5 h-5 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M17 11h-4l-1-1H8a2 2 0 0 0-2 2v5c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-5h-1z"/>
+                                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-lg text-blue-300">Link Your Accounts</h3>
+                                            <p class="text-sm text-blue-200/80">Connect your ${providerName} account</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-5">
+                                        <p class="text-sm text-blue-100 mb-2">
+                                            You already have an account with <span class="font-semibold text-white">${email}</span>
+                                        </p>
+                                        <p class="text-sm text-blue-200/90">
+                                            Sign in with your existing method to automatically link your <span class="font-semibold text-gold-300">${providerName}</span> account:
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-3 mb-5">
+                                        <button id="link-google" class="group bg-red-600/90 hover:bg-red-600 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
                                             Google
                                         </button>
-                                        <button id="link-facebook" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded flex items-center justify-center transition-colors">
-                                            <svg class="w-3 h-3 mr-1" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>
+                                        <button id="link-facebook" class="group bg-blue-600/90 hover:bg-blue-600 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>
                                             Facebook
                                         </button>
-                                        <button id="link-microsoft" class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded flex items-center justify-center transition-colors">
-                                            <svg class="w-3 h-3 mr-1" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>
+                                        <button id="link-microsoft" class="group bg-gray-600/90 hover:bg-gray-600 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>
                                             Microsoft
                                         </button>
-                                        <button id="link-email" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded flex items-center justify-center transition-colors">
-                                            <svg class="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                        <button id="link-email" class="group bg-green-600/90 hover:bg-green-600 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                                             Email
                                         </button>
                                     </div>
-                                    <p class="text-xs text-blue-300">
-                                        After signing in, your ${providerName} account will be linked automatically.
-                                    </p>
+                                    
+                                    <div class="bg-blue-950/30 border border-blue-400/20 rounded-lg p-3">
+                                        <p class="text-xs text-blue-300 flex items-center">
+                                            <svg class="w-3 h-3 mr-1.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <path d="M12 16v-4"/>
+                                                <path d="M12 8h.01"/>
+                                            </svg>
+                                            After signing in, your ${providerName} account will be linked automatically.
+                                        </p>
+                                    </div>
                                 </div>
                             `);
                             
