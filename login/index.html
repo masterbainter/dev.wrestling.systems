@@ -341,7 +341,8 @@
             try {
                 const result = await signInWithPopup(auth, provider);
                 
-                console.log("Sign-in successful!");
+                console.log("=== SUCCESSFUL OAUTH SIGN-IN ===");
+                console.log("Provider used:", provider.providerId);
                 console.log("User UID:", result.user.uid);
                 console.log("User email:", result.user.email);
                 console.log("User's current providers:", result.user.providerData.map(p => ({
@@ -349,6 +350,16 @@
                     email: p.email,
                     uid: p.uid
                 })));
+                
+                // Key question: If this user previously linked accounts, should we see multiple providers here?
+                const providerCount = result.user.providerData.length;
+                console.log(`User has ${providerCount} linked provider(s)`);
+                
+                if (providerCount > 1) {
+                    console.log("✅ ACCOUNT LINKING IS WORKING - Multiple providers found!");
+                } else {
+                    console.log("❌ Account linking may not be persisting - Only 1 provider found");
+                }
                 
                 handleAuthSuccess(result);
             } catch (error) {
