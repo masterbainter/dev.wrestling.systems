@@ -69,6 +69,19 @@
         </div>
     </div>
 
+    <!-- Development Beta Warning Banner -->
+    <div class="bg-amber-900/30 border-b border-amber-500/30 p-3 text-center">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="text-left">
+                <p class="text-amber-300 text-sm font-medium">⚠️ Development Beta - All data is temporary</p>
+                <p class="text-amber-200 text-xs">Data will be deleted when official site launches</p>
+            </div>
+            <button id="request-migration-btn" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-2 rounded transition-colors whitespace-nowrap">
+                Request Data Migration
+            </button>
+        </div>
+    </div>
+
     <div class="min-h-screen bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950">
         <!-- Main Content Container -->
         <div class="container mx-auto px-4 py-8">
@@ -455,6 +468,84 @@
             dashboardContent.classList.remove('hidden');
         }
         
+        // Handle data migration request
+        async function handleDataMigrationRequest() {
+            if (!currentUser) {
+                alert('Please sign in to request data migration');
+                return;
+            }
+            
+            try {
+                // Show confirmation dialog
+                const confirmed = confirm(
+                    'Request Data Migration?\n\n' +
+                    'This will submit a request to migrate your development data to the official Wrestling Systems site when it launches.\n\n' +
+                    'Your request will include:\n' +
+                    '• Your account information\n' +
+                    '• All athlete profiles you\'ve created\n' +
+                    '• Tournament registrations (when available)\n\n' +
+                    'Continue?'
+                );
+                
+                if (!confirmed) {
+                    return;
+                }
+                
+                // Get user's athlete data for request context
+                const athletesSnapshot = await db.collection('athletes')
+                    .where('parentUserId', '==', currentUser.uid)
+                    .get();
+                
+                const migrationRequest = {
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    displayName: currentUser.displayName || 'Unknown',
+                    providerData: currentUser.providerData.map(provider => ({
+                        providerId: provider.providerId,
+                        uid: provider.uid,
+                        email: provider.email
+                    })),
+                    athleteCount: athletesSnapshot.size,
+                    requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'pending',
+                    migrationNotes: 'User requested data migration from development to production'
+                };
+                
+                debugLog("Submitting migration request:", migrationRequest);
+                
+                // Save to migration requests collection
+                await db.collection('migrationRequests').add(migrationRequest);
+                
+                // Update button to show success
+                const btn = document.getElementById('request-migration-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Request Submitted';
+                btn.disabled = true;
+                btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+                btn.classList.add('bg-green-600');
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('bg-green-600');
+                    btn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+                }, 3000);
+                
+                alert(
+                    'Migration Request Submitted Successfully!\n\n' +
+                    'Your request has been recorded. When the official Wrestling Systems site launches, we\'ll use this information to migrate your data.\n\n' +
+                    'You\'ll receive an email notification when the official site is ready.'
+                );
+                
+                debugLog("Migration request submitted successfully");
+                
+            } catch (error) {
+                debugError("Error submitting migration request", error);
+                alert('Error submitting migration request: ' + error.message);
+            }
+        }
+        
         // Set up event listeners
         function setupEventListeners() {
             debugLog("Setting up event listeners");
@@ -555,6 +646,15 @@
                         document.getElementById('add-athlete-error').textContent = 'Error adding athlete: ' + error.message;
                         document.getElementById('add-athlete-error').classList.remove('hidden');
                     }
+                });
+            }
+            
+            // Request data migration
+            const requestMigrationBtn = document.getElementById('request-migration-btn');
+            if (requestMigrationBtn) {
+                requestMigrationBtn.addEventListener('click', async () => {
+                    debugLog("Request data migration clicked");
+                    await handleDataMigrationRequest();
                 });
             }
             

@@ -17,5 +17,11 @@ service cloud.firestore {
     match /workoutTemplates/{document=**} {
       allow read, write: if request.auth != null;
     }
+    
+    // Users can submit their own migration requests
+    match /migrationRequests/{requestId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
   }
 }
