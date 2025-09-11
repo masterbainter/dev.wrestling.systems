@@ -442,8 +442,8 @@
                 console.log("Signing in with existing provider...");
                 const result = await signInWithPopup(auth, existingProvider);
                 
-                console.log("Linking credential...");
-                await linkWithCredential(result.user, credential);
+                console.log("Linking with popup...");
+                await linkWithPopup(result.user, provider);
                 
                 // Success!
                 showError("✅ <strong>Accounts linked successfully!</strong><br>You can now sign in with either method. Redirecting...");
@@ -718,28 +718,28 @@
                     throw new Error(`Email mismatch: trying to link ${credentialData.email} to ${result.user.email}`);
                 }
                 
-                // Reconstruct the credential object using stored tokens
-                let linkCredential;
+                // Now create the provider for the pending credential to link
+                let pendingProvider;
                 if (credentialData.providerId === 'google.com') {
-                    linkCredential = GoogleAuthProvider.credential(credentialData.idToken, credentialData.accessToken);
+                    pendingProvider = new GoogleAuthProvider();
                 } else if (credentialData.providerId === 'facebook.com') {
-                    linkCredential = FacebookAuthProvider.credential(credentialData.accessToken);
+                    pendingProvider = new FacebookAuthProvider();
                 } else if (credentialData.providerId === 'microsoft.com') {
-                    linkCredential = new OAuthProvider('microsoft.com').credential({
-                        idToken: credentialData.idToken,
-                        accessToken: credentialData.accessToken
-                    });
+                    pendingProvider = new OAuthProvider('microsoft.com');
+                    pendingProvider.addScope('openid');
+                    pendingProvider.addScope('email');
+                    pendingProvider.addScope('profile');
                 }
                 
-                console.log("Reconstructed credential:", linkCredential);
-                
-                if (!linkCredential) {
-                    throw new Error("Could not reconstruct credential for linking");
+                if (!pendingProvider) {
+                    throw new Error("Could not create provider for linking");
                 }
                 
-                // Link the credential
-                console.log("Attempting to link credential to user:", result.user.uid);
-                const linkedResult = await linkWithCredential(result.user, linkCredential);
+                console.log("Provider to link:", credentialData.providerId);
+                
+                // Use linkWithPopup instead of linkWithCredential for better reliability
+                console.log("Attempting to link provider to user:", result.user.uid);
+                const linkedResult = await linkWithPopup(result.user, pendingProvider);
                 console.log("Link successful! Linked result:", linkedResult);
                 
                 // Verify the link worked by checking user's provider data

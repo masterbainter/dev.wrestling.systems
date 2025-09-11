@@ -600,10 +600,10 @@
             try {
                 showError("Signing in to link accounts...");
                 
-                // Sign in with the existing provider
+                // Sign in with the existing provider first
                 const result = await signInWithPopup(auth, existingProvider);
                 
-                // Get the stored credential
+                // Get the stored credential info
                 const pendingData = sessionStorage.getItem('pendingCredential');
                 if (!pendingData) {
                     throw new Error("No pending credential found");
@@ -617,38 +617,33 @@
                     throw new Error(`Email mismatch: trying to link ${credentialData.email} to ${result.user.email}`);
                 }
                 
-                // Reconstruct the credential object using stored tokens
-                let linkCredential;
+                // Now create the provider for the pending credential to link
+                let pendingProvider;
                 if (credentialData.providerId === 'google.com') {
-                    linkCredential = GoogleAuthProvider.credential(credentialData.idToken, credentialData.accessToken);
+                    pendingProvider = new GoogleAuthProvider();
                 } else if (credentialData.providerId === 'facebook.com') {
-                    linkCredential = FacebookAuthProvider.credential(credentialData.accessToken);
+                    pendingProvider = new FacebookAuthProvider();
                 } else if (credentialData.providerId === 'microsoft.com') {
-                    linkCredential = new OAuthProvider('microsoft.com').credential({
-                        idToken: credentialData.idToken,
-                        accessToken: credentialData.accessToken
-                    });
+                    pendingProvider = new OAuthProvider('microsoft.com');
+                    pendingProvider.addScope('openid');
+                    pendingProvider.addScope('email');
+                    pendingProvider.addScope('profile');
                 }
                 
-                console.log("Reconstructed credential:", linkCredential);
-                
-                if (!linkCredential) {
-                    throw new Error("Could not reconstruct credential for linking");
+                if (!pendingProvider) {
+                    throw new Error("Could not create provider for linking");
                 }
                 
-                // Link the credential
                 console.log("=== ATTEMPTING ACCOUNT LINKING ===");
                 console.log("Target user UID:", result.user.uid);
                 console.log("Target user email:", result.user.email);
                 console.log("Target user current providers:", result.user.providerData.map(p => p.providerId));
-                console.log("Credential to link:", {
-                    providerId: credentialData.providerId,
-                    hasAccessToken: !!credentialData.accessToken,
-                    hasIdToken: !!credentialData.idToken
-                });
-                console.log("Reconstructed linkCredential:", linkCredential);
+                console.log("Provider to link:", credentialData.providerId);
                 
-                const linkedResult = await linkWithCredential(result.user, linkCredential);
+                // Use linkWithPopup instead of linkWithCredential for better reliability
+                showError("Linking accounts with new provider...");
+                const linkedResult = await linkWithPopup(result.user, pendingProvider);
+                
                 console.log("=== LINKING SUCCESSFUL ===");
                 console.log("Linked result:", linkedResult);
                 console.log("Linked user UID:", linkedResult.user.uid);
@@ -671,6 +666,26 @@
                 // Check current auth state
                 console.log("Current auth user:", auth.currentUser);
                 console.log("Current auth user providers:", auth.currentUser?.providerData.map(p => p.providerId));
+                
+                // Firebase Console Investigation Helper
+                console.log("=== FIREBASE CONSOLE INVESTIGATION ===");
+                console.log("🔍 CHECK FIREBASE CONSOLE:");
+                console.log(`1. Go to: https://console.firebase.google.com/project/wrestling-systems-dev/authentication/users`);
+                console.log(`2. Find user: ${linkedResult.user.uid}`);
+                console.log(`3. Check 'Sign-in providers' column`);
+                console.log(`4. Should show: Facebook, Microsoft`);
+                console.log("If Firebase Console only shows ONE provider, then linkWithCredential is failing silently!");
+                
+                // Let's also check if the user has multiple provider data entries
+                console.log("=== DETAILED PROVIDER ANALYSIS ===");
+                linkedResult.user.providerData.forEach((provider, index) => {
+                    console.log(`Provider ${index + 1}:`, {
+                        providerId: provider.providerId,
+                        uid: provider.uid,
+                        email: provider.email,
+                        displayName: provider.displayName
+                    });
+                });
                 
                 // Clean up
                 sessionStorage.removeItem('pendingCredential');
