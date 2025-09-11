@@ -419,66 +419,7 @@
             }
         };
 
-        // Get user-friendly provider name
-        const getProviderDisplayName = (provider) => {
-            switch (provider.toLowerCase()) {
-                case 'google': return 'Google';
-                case 'facebook': return 'Facebook';
-                case 'microsoft': return 'Microsoft';
-                case 'email': return 'Email & Password';
-                case 'password': return 'Email & Password';
-                case 'unknown': return 'an existing authentication method';
-                default: return provider.charAt(0).toUpperCase() + provider.slice(1);
-            }
-        };
 
-        // Show account linking dialog
-        const showAccountLinkingDialog = (email, existingProvider, newProvider) => {
-            return new Promise((resolve) => {
-                const existingProviderName = getProviderDisplayName(existingProvider);
-                const newProviderName = getProviderDisplayName(newProvider);
-                
-                // Special message for unknown provider
-                const isUnknownProvider = existingProvider === 'unknown';
-                const linkingHtml = `
-                    <div class="text-left bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-                        <p class="font-semibold mb-3">🔗 Account Already Exists</p>
-                        ${isUnknownProvider ? `
-                            <p class="text-sm mb-3">
-                                The email <strong>${email}</strong> already has an account, but we couldn't detect which authentication method was used.
-                            </p>
-                            <p class="text-sm mb-4">
-                                This might be Google, Facebook, Microsoft, or Email & Password. Would you like to try linking your <strong>${newProviderName}</strong> account?
-                            </p>
-                        ` : `
-                            <p class="text-sm mb-3">
-                                The email <strong>${email}</strong> already has an account using <strong>${existingProviderName}</strong> authentication.
-                            </p>
-                            <p class="text-sm mb-4">
-                                Would you like to link your <strong>${newProviderName}</strong> account so you can sign in with either method?
-                            </p>
-                        `}
-                        <div class="flex gap-2 mt-4">
-                            <button id="link-accounts-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded transition-colors">
-                                🔗 Link Accounts
-                            </button>
-                            <button id="use-existing-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded transition-colors">
-                                Use ${existingProviderName}
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-400 mt-2">
-                            Linking keeps all your data safe and lets you sign in with either method.
-                        </p>
-                    </div>
-                `;
-                
-                errorMessage.innerHTML = linkingHtml;
-                
-                // Add event listeners
-                document.getElementById('link-accounts-btn').addEventListener('click', () => resolve(true));
-                document.getElementById('use-existing-btn').addEventListener('click', () => resolve(false));
-            });
-        };
 
         // Link accounts using Firebase
         const linkAccounts = async (error, newProvider) => {
