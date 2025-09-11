@@ -192,7 +192,7 @@
         };
 
         const showError = (message, errorObj = null) => {
-            errorMessage.textContent = message;
+            errorMessage.innerHTML = message;
             if (errorObj) console.error("Sign-in Error:", errorObj.code, errorObj.message);
         };
         
@@ -274,8 +274,25 @@
                 handleAuthSuccess(result);
             } catch (error) {
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
-                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    friendlyMessage = "An account already exists with this email. Please sign in with your original method.";
+                
+                if (error.code === 'auth/account-exists-with-different-credential') {
+                    // Enhanced error handling for duplicate emails
+                    const providerName = provider.providerId.split('.')[0];
+                    friendlyMessage = `
+                        <div class="text-left">
+                            <p class="font-semibold mb-2">🔗 Account Already Exists</p>
+                            <p class="text-sm mb-3">This email is already registered with a different sign-in method.</p>
+                            <p class="text-xs text-gray-400 mb-3">
+                                <strong>What you can do:</strong><br>
+                                • Try signing in with Google, Facebook, or Microsoft instead<br>
+                                • Or use email/password if you created an account that way<br>
+                                • All your data will be the same regardless of sign-in method
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                Note: This helps keep your account secure by preventing duplicate accounts.
+                            </p>
+                        </div>
+                    `;
                 } else if (error.code.includes('app-check')) {
                     friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
                 } else if (error.code === 'auth/unauthorized-domain') {
@@ -284,6 +301,7 @@
                     // Don't show an error message if the user intentionally closes the popup.
                     friendlyMessage = '';
                 }
+                
                 if (friendlyMessage) {
                     showError(friendlyMessage, error);
                 }
