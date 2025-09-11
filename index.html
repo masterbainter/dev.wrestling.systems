@@ -479,30 +479,35 @@
 
 
 
-        // Generic Social Sign-in Handler - Simplified approach  
+        // Generic Social Sign-in Handler - Email-based account unification
         const handleSocialSignIn = async (provider, button) => {
             errorMessage.textContent = '';
             button.disabled = true;
             try {
                 const result = await signInWithPopup(auth, provider);
                 await createSocialUserInFirestore(result.user);
-                
-                // Check if this might be a duplicate account by email
-                const email = result.user.email;
-                if (email) {
-                    // Store potential duplicate info in sessionStorage for dashboard to check
-                    sessionStorage.setItem('newAuthProvider', provider.providerId);
-                    sessionStorage.setItem('newAuthEmail', email);
-                    sessionStorage.setItem('checkForDuplicates', 'true');
-                }
-                
                 handleAuthSuccess(result);
             } catch (error) {
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    // Show account linking dialog
-                    await handleAccountLinking(error, provider);
+                    // Email-based account unification approach
+                    const email = error.customData?.email;
+                    console.log("OAuth conflict detected for email:", email);
+                    
+                    if (email) {
+                        // Show a simple message encouraging them to use their existing account
+                        showError(`
+                            <strong>Account Found!</strong><br><br>
+                            You already have an account with <strong>${email}</strong>.<br><br>
+                            Please sign in using your existing method:<br>
+                            <strong>Google, Facebook, Microsoft, or Email & Password</strong><br><br>
+                            <em>This keeps all your data in one place.</em>
+                        `);
+                    } else {
+                        friendlyMessage = `This email is already registered. Please try signing in with Google, Facebook, Microsoft, or Email & Password.`;
+                        showError(friendlyMessage, error);
+                    }
                     return; // Don't show generic error message
                 } else if (error.code.includes('app-check')) {
                     friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
