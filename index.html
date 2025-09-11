@@ -507,71 +507,143 @@
                                 email: email
                             }));
                             
-                            // Show linking dialog
-                            showError(`
-                                <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/20 border border-blue-400/40 rounded-xl p-6 text-left shadow-lg backdrop-blur-sm">
-                                    <div class="flex items-center mb-4">
-                                        <div class="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center mr-3">
-                                            <svg class="w-5 h-5 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M17 11h-4l-1-1H8a2 2 0 0 0-2 2v5c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-5h-1z"/>
-                                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                            </svg>
+                            // Create modal overlay and dialog
+                            const modalHtml = `
+                                <!-- Modal Overlay -->
+                                <div id="link-modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" style="animation: fadeIn 0.2s ease-out;">
+                                    <!-- Modal Content -->
+                                    <div class="bg-gray-800/95 backdrop-blur-md border border-gray-700 rounded-2xl shadow-2xl max-w-lg w-full mx-auto" style="animation: slideUp 0.3s ease-out;">
+                                        <!-- Header -->
+                                        <div class="bg-gradient-to-r from-gold-500/10 to-gold-600/5 border-b border-gray-700 p-6 rounded-t-2xl">
+                                            <div class="flex items-center">
+                                                <div class="w-12 h-12 bg-gold-500/20 rounded-full flex items-center justify-center mr-4">
+                                                    <svg class="w-6 h-6 text-gold-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M17 11h-4l-1-1H8a2 2 0 0 0-2 2v5c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-5h-1z"/>
+                                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h3 class="text-xl font-bold text-white">Link Your Accounts</h3>
+                                                    <p class="text-sm text-gray-400">Connect your ${providerName} account</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 class="font-semibold text-lg text-blue-300">Link Your Accounts</h3>
-                                            <p class="text-sm text-blue-200/80">Connect your ${providerName} account</p>
+                                        
+                                        <!-- Content -->
+                                        <div class="p-6">
+                                            <div class="mb-6">
+                                                <p class="text-gray-300 mb-2">
+                                                    You already have an account with <span class="font-semibold text-white">${email}</span>
+                                                </p>
+                                                <p class="text-gray-400 text-sm">
+                                                    Sign in with your existing method to automatically link your <span class="font-semibold text-gold-300">${providerName}</span> account:
+                                                </p>
+                                            </div>
+                                            
+                                            <!-- Provider Buttons -->
+                                            <div class="grid grid-cols-2 gap-3 mb-6">
+                                                <button id="link-google" class="group bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gold-500/50 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                                                    <svg class="w-4 h-4 mr-2 text-gold-300 group-hover:scale-110 transition-transform" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
+                                                    Google
+                                                </button>
+                                                <button id="link-facebook" class="group bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gold-500/50 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                                                    <svg class="w-4 h-4 mr-2 text-gold-300 group-hover:scale-110 transition-transform" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>
+                                                    Facebook
+                                                </button>
+                                                <button id="link-microsoft" class="group bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gold-500/50 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                                                    <svg class="w-4 h-4 mr-2 text-gold-300 group-hover:scale-110 transition-transform" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>
+                                                    Microsoft
+                                                </button>
+                                                <button id="link-email" class="group bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gold-500/50 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                                                    <svg class="w-4 h-4 mr-2 text-gold-300 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                                    Email
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Info Footer -->
+                                            <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-3">
+                                                <p class="text-xs text-gray-400 flex items-center">
+                                                    <svg class="w-3 h-3 mr-2 text-gold-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <circle cx="12" cy="12" r="10"/>
+                                                        <path d="M12 16v-4"/>
+                                                        <path d="M12 8h.01"/>
+                                                    </svg>
+                                                    After signing in, your ${providerName} account will be linked automatically.
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    
-                                    <div class="mb-5">
-                                        <p class="text-sm text-blue-100 mb-2">
-                                            You already have an account with <span class="font-semibold text-white">${email}</span>
-                                        </p>
-                                        <p class="text-sm text-blue-200/90">
-                                            Sign in with your existing method to automatically link your <span class="font-semibold text-gold-300">${providerName}</span> account:
-                                        </p>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-2 gap-3 mb-5">
-                                        <button id="link-google" class="group bg-red-600/90 hover:bg-red-600 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3L360 128.2c-23.2-21.5-58.2-34.6-112-34.6-88.6 0-161.2 71.5-161.2 162.3s72.6 162.3 161.2 162.3c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
-                                            Google
-                                        </button>
-                                        <button id="link-facebook" class="group bg-blue-600/90 hover:bg-blue-600 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"></path></svg>
-                                            Facebook
-                                        </button>
-                                        <button id="link-microsoft" class="group bg-gray-600/90 hover:bg-gray-600 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 448 512"><path fill="currentColor" d="M0 32h192v192H0V32zm256 0h192v192H256V32zM0 288h192v192H0V288zm256 288h192v-96H256v96zm0-128h192v-96H256v96z"></path></svg>
-                                            Microsoft
-                                        </button>
-                                        <button id="link-email" class="group bg-green-600/90 hover:bg-green-600 text-white text-sm px-4 py-3 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                            <svg class="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                            Email
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="bg-blue-950/30 border border-blue-400/20 rounded-lg p-3">
-                                        <p class="text-xs text-blue-300 flex items-center">
-                                            <svg class="w-3 h-3 mr-1.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <circle cx="12" cy="12" r="10"/>
-                                                <path d="M12 16v-4"/>
-                                                <path d="M12 8h.01"/>
+                                        
+                                        <!-- Close Button -->
+                                        <button id="close-link-modal" class="absolute top-4 right-4 w-8 h-8 bg-gray-700/80 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-gold-500">
+                                            <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                <line x1="6" y1="6" x2="18" y2="18"></line>
                                             </svg>
-                                            After signing in, your ${providerName} account will be linked automatically.
-                                        </p>
+                                        </button>
                                     </div>
                                 </div>
-                            `);
+                                
+                                <style>
+                                    @keyframes fadeIn {
+                                        from { opacity: 0; }
+                                        to { opacity: 1; }
+                                    }
+                                    @keyframes slideUp {
+                                        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+                                        to { opacity: 1; transform: translateY(0) scale(1); }
+                                    }
+                                </style>
+                            `;
+                            
+                            // Insert modal into page
+                            document.body.insertAdjacentHTML('beforeend', modalHtml);
+                            
+                            // Clear error message area since we're using a modal now
+                            errorMessage.innerHTML = '';
                             
                             // Add click handlers for linking buttons
                             setTimeout(() => {
-                                document.getElementById('link-google')?.addEventListener('click', () => performAccountLink(googleProvider));
-                                document.getElementById('link-facebook')?.addEventListener('click', () => performAccountLink(facebookProvider));
-                                document.getElementById('link-microsoft')?.addEventListener('click', () => performAccountLink(microsoftProvider));
+                                // Close modal functionality
+                                const closeModal = () => {
+                                    const modal = document.getElementById('link-modal-overlay');
+                                    if (modal) {
+                                        modal.style.animation = 'fadeOut 0.2s ease-in';
+                                        setTimeout(() => modal.remove(), 200);
+                                    }
+                                };
+                                
+                                document.getElementById('close-link-modal')?.addEventListener('click', closeModal);
+                                document.getElementById('link-modal-overlay')?.addEventListener('click', (e) => {
+                                    if (e.target.id === 'link-modal-overlay') closeModal();
+                                });
+                                
+                                // Provider linking buttons
+                                document.getElementById('link-google')?.addEventListener('click', () => {
+                                    closeModal();
+                                    performAccountLink(googleProvider);
+                                });
+                                document.getElementById('link-facebook')?.addEventListener('click', () => {
+                                    closeModal();
+                                    performAccountLink(facebookProvider);
+                                });
+                                document.getElementById('link-microsoft')?.addEventListener('click', () => {
+                                    closeModal();
+                                    performAccountLink(microsoftProvider);
+                                });
                                 document.getElementById('link-email')?.addEventListener('click', () => {
+                                    closeModal();
                                     window.location.href = '/login/';
                                 });
+                                
+                                // Add fadeOut animation style
+                                const style = document.createElement('style');
+                                style.textContent = `
+                                    @keyframes fadeOut {
+                                        from { opacity: 1; }
+                                        to { opacity: 0; }
+                                    }
+                                `;
+                                document.head.appendChild(style);
                             }, 100);
                             
                         } catch (linkError) {
