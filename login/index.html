@@ -136,7 +136,9 @@
             OAuthProvider,
             signInWithPopup,
             onAuthStateChanged,
-            signOut
+            signOut,
+            fetchSignInMethodsForEmail,
+            linkWithCredential
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         // App Check removed for development
@@ -191,6 +193,154 @@
             window.location.href = redirectUrl;
         };
 
+        // Show account linking dialog
+        const showAccountLinkingDialog = async (email, newProviderName) => {
+            return new Promise((resolve) => {
+                const linkingHtml = `
+                    <div class="text-left bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-4">
+                        <p class="font-semibold mb-3 text-blue-300">🔗 Account Already Exists</p>
+                        <p class="text-sm mb-3 text-blue-200">
+                            The email <strong>${email}</strong> is already registered with a different sign-in method.
+                        </p>
+                        <p class="text-sm mb-4 text-blue-200">
+                            Would you like to link your <strong>${newProviderName}</strong> account so you can sign in with either method?
+                        </p>
+                        <div class="flex gap-2 mt-4">
+                            <button id="link-accounts-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded transition-colors">
+                                🔗 Yes, Link Accounts
+                            </button>
+                            <button id="use-existing-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-xs px-4 py-2 rounded transition-colors">
+                                No, Use Existing Account
+                            </button>
+                        </div>
+                        <p class="text-xs text-blue-300 mt-2">
+                            Linking keeps all your data and lets you sign in with either method.
+                        </p>
+                    </div>
+                `;
+                
+                errorMessage.innerHTML = linkingHtml;
+                
+                // Add event listeners
+                const linkBtn = document.getElementById('link-accounts-btn');
+                const useExistingBtn = document.getElementById('use-existing-btn');
+                
+                const cleanup = () => {
+                    linkBtn?.removeEventListener('click', handleLink);
+                    useExistingBtn?.removeEventListener('click', handleUseExisting);
+                };
+                
+                const handleLink = () => {
+                    cleanup();
+                    resolve(true);
+                };
+                
+                const handleUseExisting = () => {
+                    cleanup();
+                    resolve(false);
+                };
+                
+                linkBtn?.addEventListener('click', handleLink);
+                useExistingBtn?.addEventListener('click', handleUseExisting);
+            });
+        };
+
+        // Handle account linking process
+        const handleAccountLinking = async (error, newProvider) => {
+            try {
+                console.log("Starting account linking process...");
+                const email = error.customData?.email;
+                
+                if (!email) {
+                    throw new Error("No email found in error");
+                }
+                
+                const newProviderName = newProvider.providerId.split('.')[0];
+                console.log("Linking conflict:", { email, newProvider: newProviderName });
+                
+                // Show linking dialog
+                const shouldLink = await showAccountLinkingDialog(email, newProviderName);
+                
+                if (!shouldLink) {
+                    // User chose to use existing account - show helpful message
+                    showError(`Please sign in with your existing account for <strong>${email}</strong> using Google, Facebook, Microsoft, or Email & Password.`);
+                    return;
+                }
+                
+                // User wants to link - get credential and existing methods
+                const credential = getCredentialFromError(error, newProvider);
+                if (!credential) {
+                    throw new Error("Could not extract credential from error");
+                }
+                
+                console.log("Getting existing sign-in methods...");
+                const methods = await fetchSignInMethodsForEmail(auth, email);
+                console.log("Available methods:", methods);
+                
+                if (!methods || methods.length === 0) {
+                    throw new Error("No existing sign-in methods found");
+                }
+                
+                // Show progress message
+                showError("Please sign in with your existing account to complete the linking...");
+                
+                // Sign in with the existing provider
+                const existingMethod = methods[0];
+                let existingProvider;
+                
+                if (existingMethod.includes('google.com')) {
+                    existingProvider = new GoogleAuthProvider();
+                } else if (existingMethod.includes('facebook.com')) {
+                    existingProvider = new FacebookAuthProvider();
+                } else if (existingMethod.includes('microsoft.com')) {
+                    existingProvider = new OAuthProvider('microsoft.com');
+                } else if (existingMethod === 'password') {
+                    // For email/password, we need to redirect them to sign in normally
+                    showError(`Please sign in with your email and password for <strong>${email}</strong>, then try the ${newProviderName} OAuth again to link them.`);
+                    return;
+                }
+                
+                if (!existingProvider) {
+                    throw new Error("Could not create provider for existing method");
+                }
+                
+                console.log("Signing in with existing provider...");
+                const result = await signInWithPopup(auth, existingProvider);
+                
+                console.log("Linking credential...");
+                await linkWithCredential(result.user, credential);
+                
+                // Success!
+                showError("✅ <strong>Accounts linked successfully!</strong><br>You can now sign in with either method. Redirecting...");
+                
+                setTimeout(() => {
+                    handleAuthSuccess(result);
+                }, 2000);
+                
+                console.log("Account linking completed successfully");
+                
+            } catch (linkError) {
+                console.error("Account linking failed:", linkError);
+                showError(`Account linking failed: ${linkError.message}<br><br>Please try signing in with your existing account instead.`);
+            }
+        };
+
+        // Get credential from error
+        const getCredentialFromError = (error, provider) => {
+            try {
+                if (provider.providerId === 'google.com') {
+                    return GoogleAuthProvider.credentialFromError(error);
+                } else if (provider.providerId === 'facebook.com') {
+                    return FacebookAuthProvider.credentialFromError(error);
+                } else if (provider.providerId === 'microsoft.com') {
+                    return OAuthProvider.credentialFromError(error);
+                }
+                return null;
+            } catch (credError) {
+                console.error("Error extracting credential:", credError);
+                return null;
+            }
+        };
 
         const showError = (message, errorObj = null) => {
             errorMessage.innerHTML = message;
@@ -467,13 +617,9 @@
                 let friendlyMessage = `Could not sign in with ${provider.providerId.split('.')[0]}. Please try again.`;
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
-                    // Standard approach: Clear error message with guidance
-                    const email = error.customData?.email;
-                    if (email) {
-                        friendlyMessage = `The email <strong>${email}</strong> is already registered with a different sign-in method.<br><br>Please try signing in with Google, Facebook, Microsoft, or Email & Password instead.`;
-                    } else {
-                        friendlyMessage = `This email is already registered with a different sign-in method. Please try signing in with Google, Facebook, Microsoft, or Email & Password.`;
-                    }
+                    // Show account linking dialog
+                    await handleAccountLinking(error, provider);
+                    return; // Don't show generic error message
                 } else if (error.code.includes('app-check')) {
                     friendlyMessage = 'Could not verify you are human. Please refresh and try again.';
                 } else if (error.code === 'auth/unauthorized-domain') {
