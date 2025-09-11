@@ -379,16 +379,34 @@
                     if (email && credential) {
                         try {
                             // Store the credential data for linking after successful sign-in
-                            // We need to extract the actual tokens from the credential object
-                            const credentialData = {
+                            // Firebase credentials have different structures per provider
+                            let credentialData = {
                                 providerId: provider.providerId,
-                                email: email,
-                                accessToken: credential.accessToken,
-                                idToken: credential.idToken,
-                                secret: credential.secret // For Twitter/OAuth1.0 if needed
+                                email: email
                             };
                             
+                            // Extract tokens based on provider type
+                            if (provider.providerId === 'google.com') {
+                                credentialData.accessToken = credential.accessToken;
+                                credentialData.idToken = credential.idToken;
+                            } else if (provider.providerId === 'facebook.com') {
+                                credentialData.accessToken = credential.accessToken;
+                            } else if (provider.providerId === 'microsoft.com') {
+                                credentialData.accessToken = credential.accessToken;
+                                credentialData.idToken = credential.idToken;
+                            }
+                            
+                            console.log("Raw credential object:", credential);
+                            console.log("Credential properties:", Object.keys(credential));
+                            console.log("Access token:", credential.accessToken);
+                            console.log("ID token:", credential.idToken);
                             console.log("Storing credential data:", credentialData);
+                            
+                            // Make sure we have required tokens
+                            if (!credentialData.accessToken && !credentialData.idToken) {
+                                throw new Error("No valid tokens found in credential object");
+                            }
+                            
                             sessionStorage.setItem('pendingCredential', JSON.stringify(credentialData));
                             
                             // Create modal overlay and dialog
