@@ -657,9 +657,20 @@
                 // Verify the link worked by checking user's provider data
                 const linkedProviders = linkedResult.user.providerData.map(p => p.providerId);
                 console.log("User NOW has providers:", linkedProviders);
+                console.log("Provider data details:", linkedResult.user.providerData);
                 
-                // Let's also check what Firebase thinks about this user
-                console.log("Full user object after linking:", linkedResult.user);
+                // Critical test: Check if Firebase user object shows the linking
+                console.log("=== FIREBASE USER VERIFICATION ===");
+                console.log("User metadata:", linkedResult.user.metadata);
+                console.log("User token claims:", await linkedResult.user.getIdTokenResult());
+                
+                // Let's also refresh the user and check again
+                await linkedResult.user.reload();
+                console.log("After reload - providers:", linkedResult.user.providerData.map(p => p.providerId));
+                
+                // Check current auth state
+                console.log("Current auth user:", auth.currentUser);
+                console.log("Current auth user providers:", auth.currentUser?.providerData.map(p => p.providerId));
                 
                 // Clean up
                 sessionStorage.removeItem('pendingCredential');
@@ -670,16 +681,28 @@
                 }, 2000);
                 
             } catch (linkError) {
-                console.error("Account linking failed:", linkError);
+                console.error("=== ACCOUNT LINKING FAILED ===");
+                console.error("Link error code:", linkError.code);
+                console.error("Link error message:", linkError.message);
+                console.error("Full link error:", linkError);
+                
                 sessionStorage.removeItem('pendingCredential');
                 
                 if (linkError.code === 'auth/provider-already-linked') {
+                    console.log("Provider already linked - this should mean linking worked previously");
                     showError("✅ Accounts already linked! Redirecting...");
                     setTimeout(() => {
                         window.location.href = '/dashboard/';
                     }, 1500);
+                } else if (linkError.code === 'auth/credential-already-in-use') {
+                    console.log("Credential already in use - this suggests separate user accounts exist");
+                    showError("This Microsoft account is already linked to a different user account. Please use a different Microsoft account or contact support.");
+                } else if (linkError.code === 'auth/invalid-credential') {
+                    console.log("Invalid credential - token may have expired or be malformed");
+                    showError("The Microsoft credential has expired. Please try signing in with Microsoft again.");
                 } else {
-                    showError("Account linking failed. You can still use your existing account to sign in.");
+                    console.log("Unknown linking error - this is the core issue");
+                    showError(`Account linking failed: ${linkError.message}. You can still use your existing account to sign in.`);
                 }
             }
         };
