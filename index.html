@@ -325,6 +325,7 @@
                 case 'microsoft': return 'Microsoft';
                 case 'email': return 'Email & Password';
                 case 'password': return 'Email & Password';
+                case 'unknown': return 'an existing authentication method';
                 default: return provider.charAt(0).toUpperCase() + provider.slice(1);
             }
         };
@@ -335,15 +336,26 @@
                 const existingProviderName = getProviderDisplayName(existingProvider);
                 const newProviderName = getProviderDisplayName(newProvider);
                 
+                // Special message for unknown provider
+                const isUnknownProvider = existingProvider === 'unknown';
                 const linkingHtml = `
                     <div class="text-left bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
                         <p class="font-semibold mb-3">🔗 Account Already Exists</p>
-                        <p class="text-sm mb-3">
-                            The email <strong>${email}</strong> already has an account using <strong>${existingProviderName}</strong> authentication.
-                        </p>
-                        <p class="text-sm mb-4">
-                            Would you like to link your <strong>${newProviderName}</strong> account so you can sign in with either method?
-                        </p>
+                        ${isUnknownProvider ? `
+                            <p class="text-sm mb-3">
+                                The email <strong>${email}</strong> already has an account, but we couldn't detect which authentication method was used.
+                            </p>
+                            <p class="text-sm mb-4">
+                                This might be Google, Facebook, Microsoft, or Email & Password. Would you like to try linking your <strong>${newProviderName}</strong> account?
+                            </p>
+                        ` : `
+                            <p class="text-sm mb-3">
+                                The email <strong>${email}</strong> already has an account using <strong>${existingProviderName}</strong> authentication.
+                            </p>
+                            <p class="text-sm mb-4">
+                                Would you like to link your <strong>${newProviderName}</strong> account so you can sign in with either method?
+                            </p>
+                        `}
                         <div class="flex gap-2 mt-4">
                             <button id="link-accounts-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded transition-colors">
                                 🔗 Link Accounts
@@ -435,9 +447,28 @@
                 console.log("Fetching sign-in methods for:", email);
                 const methods = await fetchSignInMethodsForEmail(auth, email);
                 console.log("Existing methods:", methods);
+                console.log("Methods array length:", methods.length);
+                console.log("First method:", methods[0]);
                 
-                const existingProvider = methods[0]?.split('.')[0] || 'email';
-                console.log("Existing provider:", existingProvider);
+                // Try to get provider info from the error object as well
+                console.log("Error customData:", error.customData);
+                console.log("Error credential:", error.credential);
+                
+                // If methods is empty, this might be a Firebase Auth issue
+                // Let's try a different approach to detect the provider
+                let existingProvider = 'unknown';
+                if (methods && methods.length > 0) {
+                    existingProvider = methods[0].split('.')[0];
+                    console.log("Provider from methods:", existingProvider);
+                } else {
+                    console.warn("⚠️  fetchSignInMethodsForEmail returned empty array!");
+                    console.log("This suggests the email might not be registered, or there's a Firebase Auth issue");
+                    
+                    // Fallback: try to detect from error patterns or ask user
+                    // For now, we'll show a different message
+                    existingProvider = 'unknown';
+                }
+                console.log("Final existing provider:", existingProvider);
                 
                 // Show linking dialog
                 console.log("Showing account linking dialog...");
