@@ -135,7 +135,7 @@
             signInWithPopup,
             onAuthStateChanged,
             signOut,
-            linkWithCredential,
+            linkWithPopup,
             fetchSignInMethodsForEmail
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -380,7 +380,7 @@
             `;
 
             document.body.insertAdjacentHTML('beforeend', dialogHtml);
-            setupLinkingDialogEvents(pendingCredential);
+            setupLinkingDialogEvents(pendingCredential, newProvider);
         };
 
         // Generate provider buttons based on existing methods
@@ -439,7 +439,7 @@
         };
 
         // Setup event listeners for linking dialog
-        const setupLinkingDialogEvents = (pendingCredential) => {
+        const setupLinkingDialogEvents = (pendingCredential, newProvider) => {
             const dialog = document.getElementById('linking-dialog');
             
             console.log('Setting up linking dialog events');
@@ -471,7 +471,7 @@
                     btn.textContent = 'Connecting...';
                     
                     try {
-                        await performAccountLinking(providerType, pendingCredential);
+                        await performAccountLinking(providerType, newProvider);
                         dialog.remove();
                     } catch (error) {
                         console.error('Error in button click handler:', error);
@@ -482,29 +482,28 @@
             });
         };
 
-        // Perform the actual account linking
-        const performAccountLinking = async (providerType, pendingCredential) => {
+        // Perform the actual account linking using linkWithPopup (more reliable than linkWithCredential)
+        const performAccountLinking = async (providerType, newProvider) => {
             try {
-                console.log('=== STARTING ACCOUNT LINKING ===');
+                console.log('=== STARTING ACCOUNT LINKING WITH linkWithPopup ===');
                 console.log('Provider type:', providerType);
-                console.log('Pending credential:', pendingCredential);
+                console.log('New provider:', newProvider);
                 
                 showError('Signing in to link accounts...');
                 
                 let existingResult;
                 
-                // Sign in with existing provider
+                // Sign in with existing provider first
                 if (providerType === 'google') {
-                    console.log('Signing in with Google...');
+                    console.log('Signing in with existing Google account...');
                     existingResult = await signInWithPopup(auth, googleProvider);
                 } else if (providerType === 'facebook') {
-                    console.log('Signing in with Facebook...');
+                    console.log('Signing in with existing Facebook account...');
                     existingResult = await signInWithPopup(auth, facebookProvider);
                 } else if (providerType === 'microsoft') {
-                    console.log('Signing in with Microsoft...');
+                    console.log('Signing in with existing Microsoft account...');
                     existingResult = await signInWithPopup(auth, microsoftProvider);
                 } else if (providerType === 'email') {
-                    // For email/password, we need to show the form
                     showError('Please use the email/password form above to sign in, then try the other provider again.');
                     return;
                 }
@@ -517,47 +516,31 @@
                 console.log('Existing sign-in successful:', existingResult.user.email);
                 console.log('Current providers before linking:', existingResult.user.providerData.map(p => p.providerId));
                 
-                // Link the pending credential to the existing account
-                showError('Linking accounts...');
-                console.log('Attempting linkWithCredential...');
+                // Now link the new provider using linkWithPopup (more reliable method)
+                showError('Linking new provider...');
+                console.log('Attempting linkWithPopup with new provider...');
                 console.log('User before linking:', {
                     uid: existingResult.user.uid,
                     email: existingResult.user.email,
                     providers: existingResult.user.providerData.map(p => p.providerId)
                 });
-                console.log('Credential to link:', pendingCredential);
                 
-                const linkedResult = await linkWithCredential(existingResult.user, pendingCredential);
+                const linkedResult = await linkWithPopup(existingResult.user, newProvider);
                 
-                console.log('✅ linkWithCredential() completed!');
+                console.log('✅ linkWithPopup() completed!');
                 console.log('Linked user UID:', linkedResult.user.uid);
                 console.log('Linked user email:', linkedResult.user.email);
                 console.log('Final linked providers:', linkedResult.user.providerData.map(p => p.providerId));
                 
-                // CRITICAL TEST: Refresh the user to see if linking persisted
+                // Test persistence
                 await linkedResult.user.reload();
                 console.log('After user.reload() - providers:', linkedResult.user.providerData.map(p => p.providerId));
                 
-                // CRITICAL TEST: Check if we can get a fresh token with multiple providers
-                try {
-                    const tokenResult = await linkedResult.user.getIdTokenResult(true);
-                    console.log('Token result:', tokenResult);
-                    console.log('Token claims firebase.sign_in_provider:', tokenResult.claims.firebase?.sign_in_provider);
-                } catch (tokenError) {
-                    console.error('Error getting token:', tokenError);
-                }
+                showError('✅ Accounts successfully linked!');
                 
-                // CRITICAL TEST: Check current auth state
-                console.log('Auth.currentUser after linking:', auth.currentUser);
-                console.log('Auth.currentUser providers:', auth.currentUser?.providerData.map(p => p.providerId));
-                
-                showError('✅ Accounts linked! Testing persistence...');
-                
-                // Test if linking actually worked by signing out and back in
-                console.log('🧪 TESTING ACCOUNT LINKING PERSISTENCE');
-                console.log('1. Current providers:', linkedResult.user.providerData.map(p => p.providerId));
-                console.log('2. If this worked, next Microsoft sign-in should succeed without modal');
-                console.log('3. If you still get the modal, linkWithCredential is NOT working');
+                console.log('🧪 ACCOUNT LINKING SUCCESS WITH linkWithPopup');
+                console.log('Providers now linked:', linkedResult.user.providerData.map(p => p.providerId));
+                console.log('Next sign-in with any linked provider should work without modal');
                 
                 // Store updated user data and redirect
                 setTimeout(() => {
@@ -571,16 +554,15 @@
                 console.error('Full error:', linkError);
                 
                 if (linkError.code === 'auth/provider-already-linked') {
-                    console.log('Provider already linked - this should be success');
+                    console.log('Provider already linked - this is success');
                     showError('✅ Accounts already linked! Redirecting...');
                     setTimeout(() => {
                         handleAuthSuccess({ user: auth.currentUser });
                     }, 1500);
                 } else if (linkError.code === 'auth/credential-already-in-use') {
                     showError('This account is already linked to a different user. Please use a different account.');
-                } else if (linkError.code === 'auth/invalid-credential') {
-                    console.error('Invalid credential - the pending credential may have expired');
-                    showError('Account linking failed - please try signing in again with the new provider.');
+                } else if (linkError.code === 'auth/popup-closed-by-user') {
+                    showError('Account linking was cancelled. Please try again.');
                 } else {
                     showError(`Account linking failed: ${linkError.message}`);
                 }
