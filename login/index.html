@@ -267,6 +267,12 @@
                     })));
                 } else {
                     console.log('ℹ️ Single provider found - either first sign-in or linking failed previously');
+                    console.log('Current provider details:', {
+                        provider: result.user.providerData[0]?.providerId,
+                        uid: result.user.providerData[0]?.uid,
+                        email: result.user.providerData[0]?.email,
+                        firebaseUID: result.user.uid
+                    });
                 }
                 
                 handleAuthSuccess(result);
@@ -553,18 +559,22 @@
                 console.error('Error message:', linkError.message);
                 console.error('Full error:', linkError);
                 
-                if (linkError.code === 'auth/provider-already-linked') {
+                // CRITICAL DIAGNOSIS: Check if this indicates multiple accounts
+                if (linkError.code === 'auth/credential-already-in-use') {
+                    console.error('🚨 DIAGNOSIS: The Microsoft credential is already linked to a DIFFERENT Firebase user!');
+                    console.error('This means you have multiple Firebase accounts with the same email.');
+                    console.error('Solution: Delete duplicate accounts in Firebase Console or sign in with the other account first.');
+                    showError('❌ Multiple accounts detected! The Microsoft account is already linked to a different user. Check Firebase Console.');
+                } else if (linkError.code === 'auth/provider-already-linked') {
                     console.log('Provider already linked - this is success');
                     showError('✅ Accounts already linked! Redirecting...');
                     setTimeout(() => {
                         handleAuthSuccess({ user: auth.currentUser });
                     }, 1500);
-                } else if (linkError.code === 'auth/credential-already-in-use') {
-                    showError('This account is already linked to a different user. Please use a different account.');
                 } else if (linkError.code === 'auth/popup-closed-by-user') {
                     showError('Account linking was cancelled. Please try again.');
                 } else {
-                    showError(`Account linking failed: ${linkError.message}`);
+                    showError(`Account linking failed: ${linkError.message} (Code: ${linkError.code})`);
                 }
             }
         };
